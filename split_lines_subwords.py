@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import os
 import shutil
 import errno
-# from skimage.filters import threshold_local
-# from skimage import measure
 
+def most_frequent(List): 
+    return max(set(List), key = List.count) 
 
 def display_image(label, image):
     cv2.imshow(label, image)
@@ -36,7 +36,7 @@ def get_horizontal_projection(image):
     h,w = image.shape
     horizontal_projection = cv2.reduce(src=image, dim=-1, rtype=cv2.REDUCE_SUM, dtype=cv2.CV_32S)
     plt.plot(range(h), horizontal_projection.tolist())
-    plt.savefig("horizontal_projection.png")
+    plt.savefig("./figs/horizontal_projection.png")
     return horizontal_projection
 
 def get_vertical_projection(image):
@@ -51,7 +51,7 @@ def get_vertical_projection(image):
         vertical_projection.append(count)
 
     plt.plot(range(len(vertical_projection)), vertical_projection)
-    plt.savefig("vertical_projection.png")
+    plt.savefig("./figs/vertical_projection.png")
     return vertical_projection
 
 def deskew(image):
@@ -59,12 +59,10 @@ def deskew(image):
     coords = np.column_stack(np.where(image > 0))
     # minAreaRect computes the minimum rotated rectangle that contains the entire text region.
     angle = cv2.minAreaRect(coords)[-1]
-    print("the angle is: ", angle)
     if angle < -45:
         angle = -(90 + angle)
     else:
         angle = -angle
-    print("angle is now: ", angle)
     # now rotate the image with the obtained angle
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
@@ -84,8 +82,7 @@ def get_largest_connected_component(image):
     # image = cv2.morphologyEx(image, cv2.MORPH_OPEN, np.ones((2,2), np.uint8))
 
     # display_image("after erode+dilate", image)
-    number_of_components, output, stats, centroids = cv2.connectedComponentsWithStats(
-        image, connectivity=4)
+    number_of_components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
     sizes = stats[:, -1]
 
     max_label = 1
@@ -130,12 +127,17 @@ def get_distances(image, base_line):
 
 
 def get_pen_size(image):
-    print("inside the pen size function")
-    vertical_projection = get_vertical_projection(image)
-    horizontal_projection = get_horizontal_projection(image)
-    print("this is the vertical projection: ", vertical_projection)
-    print("this is the horizontal projection: ", horizontal_projection)
 
+    vertical_projection = get_vertical_projection(image)
+    most_freq_vertical = most_frequent(vertical_projection)
+
+    horizontal_projection = get_horizontal_projection(image)
+    (values,counts) = np.unique(horizontal_projection, return_counts=True)
+    most_freq_horizontal = np.argmax(counts)
+
+    if most_freq_horizontal > most_freq_vertical:
+        return most_freq_vertical
+    return most_freq_horizontal
 
 def segment_lines(image, directory_name):
     (h, w) = image.shape[:2]
@@ -191,26 +193,25 @@ def segment_lines(image, directory_name):
 
 def segment_words_dilate(path):
 
-    #should have a loop here on files
+    #should have a loop here on all files
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     image = cv2.imread(os.path.join(path, files[0]), cv2.IMREAD_GRAYSCALE)
-    # image = convert_to_binary_and_invert(image)
-    # image = convert_to_binary(image)
-
-    # image = deskew(image)
-    # image = convert_to_binary(image)
+    image = convert_to_binary(image)
+    image_with_line = image.copy()
     original_image = image.copy()
-    
-    (h, w) = image.shape
-    # image = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
-    
-    # horizontal_projection = get_horizontal_projection(image)
 
-    # base_line_y_coord = get_base_line_y_coord(horizontal_projection)
-    
-    # cv2.line(image, (0, base_line_y_coord), (w, base_line_y_coord), (255,255,255), 1)
-    # image = convert_to_binary(image)
-        
+    (h, w) = image.shape
+    print("this is image shape: ", image.shape)
+
+    # image_with_line = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
+    horizontal_projection = get_horizontal_projection(image)
+    base_line_y_coord = get_base_line_y_coord(horizontal_projection)
+    cv2.line(image_with_line, (0, base_line_y_coord), (w, base_line_y_coord), (255,255,255), 1)
+    largest_connected_component = get_largest_connected_component(image_with_line)
+
+    image_without_dotting = cv2.bitwise_and(largest_connected_component, original_image)
+
+    display_image("image without dotting", image_without_dotting)
     vertical_projection = get_vertical_projection(image)
 
     print("shape of vertical projections is: ", len(vertical_projection))
@@ -239,15 +240,21 @@ def segment_words_dilate(path):
     previous_width = 0
 
     for i in range(len(xcoords)):
-
-        cv2.line(original_image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
-        
-        sub_word = original_image[:, previous_width: int(xcoords[i])]
-        
-        display_image("sub word",sub_word)
+        if i == 0:
+            previous_width = int(xcoords[i])
+            continue
+        cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
+        sub_word = image_without_dotting[:, previous_width: int(xcoords[i])]
+        get_pen_size(sub_word)
+        # display_image("sub word",sub_word)
         previous_width = int(xcoords[i])
 
-    display_image("final output", original_image)
+    cv2.line(image, (int(xcoords[-1]), 0), (int(xcoords[-1]), h), (255, 255, 255), 1)
+    sub_word = image_without_dotting[:, int(xcoords[-1]):w ]
+    display_image("sub word",sub_word)
+    get_pen_size(sub_word)
+
+    display_image("final output", image)
 
 
 
@@ -255,15 +262,25 @@ if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
     
-    ap.add_argument("-i", "--image", required=True, help="path to input image file")
+    ap.add_argument("-o", "--line-segments-path", required=False, help="path to line segments file", default="./segmented_lines")
+    ap.add_argument("-i", "--input-path", required=False, help="path to line segments file", default="./inputs")
+    # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs")
+
+
     args = vars(ap.parse_args())
-    
-    image = cv2.imread(args["image"])
-    display_image("source", image)
-    processed_image = convert_to_binary_and_invert(image)
-    processed_image = deskew(processed_image)
-    processed_image = convert_to_binary(processed_image)
-    display_image("after deskew", processed_image)
-    segmets_file_name = './segmented_lines'
-    # processed_image = segment_lines(processed_image, segmets_file_name)
-    segment_words_dilate(segmets_file_name)
+    print(args)
+    input_path = args["input_path"]
+    line_segmets_path = args["line_segments_path"]
+
+    files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
+    for f in files:
+        print(f)
+        image = cv2.imread(os.path.join(input_path, f))
+        display_image("source", image)
+        processed_image = convert_to_binary_and_invert(image)
+        processed_image = deskew(processed_image)
+        processed_image = convert_to_binary(processed_image)
+        display_image("after deskew", processed_image)
+
+        # processed_image = segment_lines(processed_image, line_segmets_path)
+        segment_words_dilate(line_segmets_path)
