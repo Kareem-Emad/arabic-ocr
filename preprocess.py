@@ -82,8 +82,10 @@ def get_pen_size(image):
     most_freq_vertical = most_frequent(vertical_projection)
 
     horizontal_projection = get_horizontal_projection(image)
-    (values, counts) = np.unique(horizontal_projection, return_counts=True)
-    most_freq_horizontal = np.argmax(counts)
+    most_freq_horizontal = most_frequent(horizontal_projection)
+
+    
+    # print("most frq hor: ", most_freq_horizontal)
 
     if most_freq_horizontal > most_freq_vertical:
         return most_freq_vertical
@@ -92,4 +94,21 @@ def get_pen_size(image):
 def segment_character(image):
 
     pen_size = get_pen_size(image)
-    horizontal_projection = get_vertical_projection(image)
+    # vertical_projection = get_vertical_projection(image)
+
+    # positions = np.where(vertical_projection == pen_size)
+    # print("pen size is: ", pen_size)
+    # print("positions is: ", positions[0], sep='\n')
+    # count = 0
+    # consective = False
+    # positions = []
+    # for i in vertical_projection:
+    #     if i == pen_size:
+    #         if consective 
+    #             count += 1
+    #         positions.append(count)
+
+    #         else:
+    #             count = 1
+
+    # print(count)

@@ -2,11 +2,20 @@ import cv2
 import numpy as np
 
 
-def most_frequent(List):
-    if(type(List) is np.ndarray):
-        List = List.tolist()
-    return max(set(List), key=List.count)
+def most_frequent(arr):
 
+    (values, counts) = np.unique(arr, return_counts=True)
+    most_freq = values[np.argmax(counts)] 
+    
+    print("most freq is: ", most_freq)
+    if most_freq == 0:
+        print("max is zero")
+        counts = counts[1:]
+        values = values[1:]
+        most_freq = values[np.argmax(counts)]
+        print("now most freq is: ", most_freq)
+
+    return most_freq
 
 def display_image(label, image):
     cv2.imshow(label, image)
