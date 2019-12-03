@@ -4,10 +4,11 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 import shutil
-import errno
 
-def most_frequent(List): 
-    return max(set(List), key = List.count) 
+
+def most_frequent(List):
+    return max(set(List), key=List.count)
+
 
 def display_image(label, image):
     cv2.imshow(label, image)
@@ -17,27 +18,31 @@ def display_image(label, image):
 
 def convert_to_binary(image):
     # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _ ,thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)    
+    _, thresh = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
     return thresh
+
 
 def convert_to_binary_and_invert(image):
     # convert to greyscale then flip black and white
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _ ,thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)    
+    _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
     return thresh
+
 
 def get_base_line_y_coord(horizontal_projection):
 
     base_line_y_coord = np.where(horizontal_projection == np.amax(horizontal_projection))
     return base_line_y_coord[0][0]
 
+
 def get_horizontal_projection(image):
 
-    h,w = image.shape
+    h, w = image.shape
     horizontal_projection = cv2.reduce(src=image, dim=-1, rtype=cv2.REDUCE_SUM, dtype=cv2.CV_32S)
     plt.plot(range(h), horizontal_projection.tolist())
     plt.savefig("./figs/horizontal_projection.png")
     return horizontal_projection
+
 
 def get_vertical_projection(image):
 
@@ -53,6 +58,7 @@ def get_vertical_projection(image):
     plt.plot(range(len(vertical_projection)), vertical_projection)
     plt.savefig("./figs/vertical_projection.png")
     return vertical_projection
+
 
 def deskew(image):
     # get all white pixels coords (the foreground pixels)
@@ -101,18 +107,17 @@ def get_largest_connected_component(image):
     return image2
 
 
-
 def get_distances(image, base_line):
     # print("these are the pixels along the baseline",image[base_line,:])
     h, w = image.shape
-    cv2.circle(image, (h//2, w//2), 20, (0, 0, 0), 5)
+    cv2.circle(image, (h // 2, w // 2), 20, (0, 0, 0), 5)
     # pixels_along_baseline = image[base_line,:]
     is_first_point = False
     distances = []
     previous_point = 0
     for i in range(w):
         if image[base_line, i] == 255:
-            if is_first_point == False:
+            if is_first_point is False:
                 is_first_point = True
                 previous_point = i
                 print("this is the first point")
@@ -121,7 +126,7 @@ def get_distances(image, base_line):
                 distances.append(i - previous_point)
                 print("difference is: ", i - previous_point)
                 previous_point = i
-                
+
                 # cv2.circle(image, (i, base_line), 3, (0, 0, 255), -1)
     # display_image("pen_size", image)
 
@@ -132,21 +137,22 @@ def get_pen_size(image):
     most_freq_vertical = most_frequent(vertical_projection)
 
     horizontal_projection = get_horizontal_projection(image)
-    (values,counts) = np.unique(horizontal_projection, return_counts=True)
+    (values, counts) = np.unique(horizontal_projection, return_counts=True)
     most_freq_horizontal = np.argmax(counts)
 
     if most_freq_horizontal > most_freq_vertical:
         return most_freq_vertical
     return most_freq_horizontal
 
+
 def segment_lines(image, directory_name):
     (h, w) = image.shape[:2]
     original_image = image.copy()
-    
+
     image = cv2.dilate(image, np.ones((3, 3), np.uint8), iterations=1)
 
     horizontal_projection = get_horizontal_projection(image)
-    
+
     y, count = 0, 0
     is_space = False
     ycoords = []
@@ -160,7 +166,7 @@ def segment_lines(image, directory_name):
         else:
             if horizontal_projection[i] > 0:
                 is_space = False
-                ycoords.append(y/count)
+                ycoords.append(y / count)
 
             else:
                 y += i
@@ -177,9 +183,9 @@ def segment_lines(image, directory_name):
         if i == 0:
             continue
 
-        cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255,255,255), 2) #for debugging
+        cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2)  # for debugging
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
-        
+
         previous_height = int(ycoords[i])
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
 
@@ -193,7 +199,7 @@ def segment_lines(image, directory_name):
 
 def segment_words_dilate(path):
 
-    #should have a loop here on all files
+    # should have a loop here on all files
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     image = cv2.imread(os.path.join(path, files[0]), cv2.IMREAD_GRAYSCALE)
     image = convert_to_binary(image)
@@ -206,7 +212,7 @@ def segment_words_dilate(path):
     # image_with_line = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
     horizontal_projection = get_horizontal_projection(image)
     base_line_y_coord = get_base_line_y_coord(horizontal_projection)
-    cv2.line(image_with_line, (0, base_line_y_coord), (w, base_line_y_coord), (255,255,255), 1)
+    cv2.line(image_with_line, (0, base_line_y_coord), (w, base_line_y_coord), (255, 255, 255), 1)
     largest_connected_component = get_largest_connected_component(image_with_line)
 
     image_without_dotting = cv2.bitwise_and(largest_connected_component, original_image)
@@ -230,7 +236,7 @@ def segment_words_dilate(path):
         else:
             if vertical_projection[i] > 0:
                 is_space = False
-                xcoords.append(x/count)
+                xcoords.append(x / count)
 
             else:
                 x += i
@@ -244,28 +250,34 @@ def segment_words_dilate(path):
             previous_width = int(xcoords[i])
             continue
         cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
-        sub_word = image_without_dotting[:, previous_width: int(xcoords[i])]
+        sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
         get_pen_size(sub_word)
         # display_image("sub word",sub_word)
         previous_width = int(xcoords[i])
 
     cv2.line(image, (int(xcoords[-1]), 0), (int(xcoords[-1]), h), (255, 255, 255), 1)
-    sub_word = image_without_dotting[:, int(xcoords[-1]):w ]
-    display_image("sub word",sub_word)
+    sub_word = image_without_dotting[:, int(xcoords[-1]):w]
+    display_image("sub word", sub_word)
     get_pen_size(sub_word)
 
     display_image("final output", image)
 
 
-
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
-    
-    ap.add_argument("-o", "--line-segments-path", required=False, help="path to line segments file", default="./segmented_lines")
-    ap.add_argument("-i", "--input-path", required=False, help="path to line segments file", default="./inputs")
-    # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs")
 
+    ap.add_argument("-o",
+                    "--line-segments-path",
+                    required=False,
+                    help="path to line segments file",
+                    default="./segmented_lines")
+    ap.add_argument("-i",
+                    "--input-path",
+                    required=False,
+                    help="path to line segments file",
+                    default="./inputs")
+    # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs") # noqa
 
     args = vars(ap.parse_args())
     print(args)
