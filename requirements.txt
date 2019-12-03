@@ -3,3 +3,4 @@ yapf==0.29.0
 numpy==1.17.4
 opencv-python==4.1.2.30
 matplotlib==3.1.2
+ipdb==0.12.2
