@@ -90,25 +90,56 @@ def get_pen_size(image):
     if most_freq_horizontal > most_freq_vertical:
         return most_freq_vertical
     return most_freq_horizontal
+    
 
 def segment_character(image):
 
     pen_size = get_pen_size(image)
-    # vertical_projection = get_vertical_projection(image)
+    vertical_projection = get_vertical_projection(image)
 
-    # positions = np.where(vertical_projection == pen_size)
-    # print("pen size is: ", pen_size)
-    # print("positions is: ", positions[0], sep='\n')
-    # count = 0
-    # consective = False
-    # positions = []
-    # for i in vertical_projection:
-    #     if i == pen_size:
-    #         if consective 
-    #             count += 1
-    #         positions.append(count)
+    positions = np.where(vertical_projection == pen_size)
+    print("pen size is: ", pen_size)
+    print("positions is: ", positions[0], sep='\n')
+    positions = positions[0]
 
-    #         else:
-    #             count = 1
+    count = 0
+    consective = False
+    length_consective = []
+    point_positions = []
+    for i in range(1, len(positions)):
 
-    # print(count)
+        if not consective:
+            if positions[i-1] + 1 == positions[i]:
+                count  = 1
+                consective = True
+
+        else:
+            if positions[i-1] + 1 != positions[i]:
+                consective = False
+                length_consective.append(count+1)
+                point_positions.append(i)
+
+
+            else:
+                count += 1
+
+    print("point positions is", point_positions)
+    print("length_consective is", length_consective)
+    print("postions is: ", positions)
+
+    segmenataion_points = []
+    for i in range(len(length_consective)):
+        temp = positions[point_positions[i] - length_consective[i]:point_positions[i]]
+        print("final point positions",temp)
+        if len(temp) != 0:
+            segmenataion_points.append(int(sum(temp)/len(temp)))
+
+    print("final seg points", segmenataion_points)
+
+    previous_width = 0
+    (h,w) = image.shape
+    for i in segmenataion_points:
+        cv2.line(image, (i, 0), (i, h), (255, 255, 255), 1)
+
+    # cv2.line(image, (segmenataion_points[-1], 0), (segmenataion_points[-1], h), (255, 255, 255), 1)
+    display_image("char seg",image)
