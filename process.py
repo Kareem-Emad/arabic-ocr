@@ -5,7 +5,7 @@ import os
 import shutil
 
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image
-from preprocess import get_base_line_y_coord, get_horizontal_projection, get_largest_connected_component
+from preprocess import get_baseline_y_coord, get_horizontal_projection, get_largest_connected_component
 from preprocess import get_pen_size, get_vertical_projection, deskew
 
 
@@ -75,8 +75,8 @@ def segment_words_dilate(path):
 
     # image_with_line = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
     horizontal_projection = get_horizontal_projection(image)
-    base_line_y_coord = get_base_line_y_coord(horizontal_projection)
-    cv2.line(image_with_line, (0, base_line_y_coord), (w, base_line_y_coord), (255, 255, 255), 1)
+    baseline_y_coord = get_baseline_y_coord(horizontal_projection)
+    cv2.line(image_with_line, (0, baseline_y_coord), (w, baseline_y_coord), (255, 255, 255), 1)
     largest_connected_component = get_largest_connected_component(image_with_line)
 
     image_without_dotting = cv2.bitwise_and(largest_connected_component, original_image)
@@ -141,8 +141,7 @@ if __name__ == '__main__':
                     required=False,
                     help="path to line segments file",
                     default="./inputs")
-    # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs") # noqa
-
+    
     args = vars(ap.parse_args())
     print(args)
     input_path = args["input_path"]
@@ -158,5 +157,7 @@ if __name__ == '__main__':
         processed_image = convert_to_binary(processed_image)
         display_image("after deskew", processed_image)
 
-        # processed_image = segment_lines(processed_image, line_segmets_path)
-        segment_words_dilate(line_segmets_path)
+        line_segmets_path = os.path.join(line_segmets_path, f) 
+        print("line path: ", line_segmets_path)
+        processed_image = segment_lines(processed_image, line_segmets_path)
+        # segment_words_dilate(line_segmets_path)

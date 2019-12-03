@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 from utils import display_image, most_frequent
 
 
-def get_base_line_y_coord(horizontal_projection):
+def get_baseline_y_coord(horizontal_projection):
 
-    base_line_y_coord = np.where(horizontal_projection == np.amax(horizontal_projection))
-    return base_line_y_coord[0][0]
+    baseline_y_coord = np.where(horizontal_projection == np.amax(horizontal_projection))
+    return baseline_y_coord[0][0]
 
 
 def get_horizontal_projection(image):
@@ -88,3 +88,8 @@ def get_pen_size(image):
     if most_freq_horizontal > most_freq_vertical:
         return most_freq_vertical
     return most_freq_horizontal
+
+def segment_character(image):
+
+    pen_size = get_pen_size(image)
+    horizontal_projection = get_vertical_projection(image)
