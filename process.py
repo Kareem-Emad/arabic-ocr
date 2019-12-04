@@ -6,7 +6,7 @@ import shutil
 
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image
 from preprocess import get_baseline_y_coord, get_horizontal_projection, get_largest_connected_component
-from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew
+from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition
 
 
 def segment_lines(image, directory_name):
@@ -49,9 +49,10 @@ def segment_lines(image, directory_name):
 
         cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2)  # for debugging
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
-
         previous_height = int(ycoords[i])
+        
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
+        r  = find_max_transition(image_cropped)
 
     display_image("segmented lines", image)
 
@@ -115,13 +116,13 @@ def segment_words_dilate(path):
             continue
         cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
         sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
-        segment_character(sub_word)
+        # segment_character(sub_word)
         # display_image("sub word",sub_word)
         previous_width = int(xcoords[i])
 
     cv2.line(image, (int(xcoords[-1]), 0), (int(xcoords[-1]), h), (255, 255, 255), 1)
     sub_word = image_without_dotting[:, int(xcoords[-1]):w]
-    display_image("sub word", sub_word)
+    # display_image("sub word", sub_word)
     # get_pen_size(sub_word)
 
     display_image("final output", image)
@@ -159,5 +160,5 @@ if __name__ == '__main__':
 
         line_segmets_path = os.path.join(line_segmets_path, f) 
         print("line path: ", line_segmets_path)
-        # processed_image = segment_lines(processed_image, line_segmets_path)
-        segment_words_dilate(line_segmets_path)
+        processed_image = segment_lines(processed_image, line_segmets_path)
+        # segment_words_dilate(line_segmets_path)

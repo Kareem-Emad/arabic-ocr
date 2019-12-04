@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from math import ceil, floor
 from utils import display_image, most_frequent
 
 
@@ -91,6 +92,42 @@ def get_pen_size(image):
         return most_freq_vertical
     return most_freq_horizontal
     
+#call on line image  to find the max transition line, above the baseline
+def find_max_transition(image):
+
+    image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))
+
+    horizontal_projection = get_horizontal_projection(image)
+    baseline = get_baseline_y_coord(horizontal_projection)
+
+    max_transitions = 0
+    max_transition_line = baseline
+    h, w = image.shape
+
+    for i in range(baseline, -1, -1):
+        current_transitions = 0
+        flag = 0
+
+        for j in range(w-1, -1, -1):
+
+            if image[i,j] == 255 and flag == 0:
+                current_transitions += 1
+                flag = 1
+
+            elif image[i,j] != 255 and  flag == 1:
+                flag = 0
+
+        if current_transitions >= max_transitions:
+            max_transitions = current_transitions
+            max_transition_line = i
+
+    cv2.line(image, (0, max_transition_line), (w, max_transition_line), (255, 255, 255), 1)
+
+    cv2.line(image, (0, baseline), (w, baseline), (255, 255, 255), 1)
+    display_image("max transitions", image)
+    return max_transition_line
+    
+
 
 def segment_character(image):
 
@@ -116,8 +153,9 @@ def segment_character(image):
         else:
             if positions[i-1] + 1 != positions[i]:
                 consective = False
-                length_consective.append(count+1)
-                point_positions.append(i)
+                if(count > (pen_size/255) * 0.4):
+                    length_consective.append(count+1)
+                    point_positions.append(i)
 
 
             else:
@@ -132,7 +170,7 @@ def segment_character(image):
         temp = positions[point_positions[i] - length_consective[i]:point_positions[i]]
         print("final point positions",temp)
         if len(temp) != 0:
-            segmenataion_points.append(int(sum(temp)/len(temp)))
+            segmenataion_points.append(ceil(sum(temp)/len(temp)))
 
     print("final seg points", segmenataion_points)
 
