@@ -93,8 +93,9 @@ def get_pen_size(image):
     return most_freq_horizontal
     
 #call on line image  to find the max transition line, above the baseline
-def find_max_transition(image):
+def find_max_transition(image_original):
 
+    image = image_original.copy()
     image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))
 
     horizontal_projection = get_horizontal_projection(image)
@@ -114,18 +115,82 @@ def find_max_transition(image):
                 current_transitions += 1
                 flag = 1
 
-            elif image[i,j] != 255 and  flag == 1:
+            elif image[i,j] != 255 and flag == 1:
                 flag = 0
 
         if current_transitions >= max_transitions:
             max_transitions = current_transitions
             max_transition_line = i
 
-    cv2.line(image, (0, max_transition_line), (w, max_transition_line), (255, 255, 255), 1)
+    
 
+    cv2.line(image, (0, max_transition_line), (w, max_transition_line), (255, 255, 255), 1)
     cv2.line(image, (0, baseline), (w, baseline), (255, 255, 255), 1)
     display_image("max transitions", image)
+
     return max_transition_line
+    
+
+def get_start_end_points_sr(image, max_transition_index):
+
+    flag = 0
+    image_co = image.copy()
+    separation_regions = []
+    h, w = image.shape
+    sr = [-1, -1]  #white to black --> start
+    for j in range(w-1, -1, -1): # black to white --> end
+        if image[max_transition_index,j] == 255 and flag == 0:
+            sr[1] = j
+            flag = 1
+        elif image[max_transition_index,j] != 255 and flag == 1:
+            flag = 0
+            sr[0] = j
+
+        if not -1 in sr:
+            separation_regions.append(sr)
+            sr = [-1, -1]
+
+    for sr in separation_regions:
+        cv2.line(image_co, (sr[0], 0), (sr[0], h), (255, 255, 255), 1)  # for debugging
+        cv2.line(image_co, (sr[1], 0), (sr[1], h), (255, 255, 255), 1)  # for debugging
+
+    display_image("after ", image_co)
+    print(separation_regions)
+
+def get_cut_points(image, max_transition_index, vertical_projection):
+    
+    get_start_end_points_sr(image, max_transition_index)
+    # most_freq_vertical = most_frequent(vertical_projection)
+    # flag = 0
+    # h, w= image.shape
+    # separation_regions = []
+    # for j in range(w):
+    #     sr = [-1, -1, -1]
+    #     if image[max_transition_index, j] == 255 and flag == 0:
+    #         sr[1] = j #set the end index of the current sr
+    #         flag = 1
+    #     elif image[max_transition_index, j] != 255 and flag == 1:
+    #         sr[0] = j# set the start
+    #         middle_index = (sr[0] + sr[1]) // 2
+    #         vp = vertical_projection[sr[0]:sr[1]]
+    #         if 0 in vp:
+    #             temp = [i for i, e in enumerate(vp) if e == 0]
+    #             min_distance_index = min(temp, key= lambda x:abs(x-middle_index))
+    #             sr[2] = min_distance_index #line 17
+            
+    #         if vertical_projection[middle_index] == most_freq_vertical:
+    #             sr[2] = middle_index
+    #         if any (y <= most_freq_vertical for y in vp):
+    #             emp = [i for i, e in enumerate(vp) if e <= most_freq_vertical]
+    #             min_distance_index = min(temp, key= lambda x:abs(x-middle_index))
+    #             sr[2] = min_distance_index #25
+    #         else:
+    #             sr[2] = middle_index
+            
+    #     separation_regions.append(sr)
+    #     flag = 0
+    
+    # print("sr: ", separation_regions, sep='\n')
     
 
 

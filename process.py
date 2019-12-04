@@ -6,7 +6,7 @@ import shutil
 
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image
 from preprocess import get_baseline_y_coord, get_horizontal_projection, get_largest_connected_component
-from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition
+from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition, get_cut_points
 
 
 def segment_lines(image, directory_name):
@@ -53,7 +53,6 @@ def segment_lines(image, directory_name):
         
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
         r  = find_max_transition(image_cropped)
-
     display_image("segmented lines", image)
 
     image_cropped = original_image[previous_height:h, :]
@@ -70,6 +69,8 @@ def segment_words_dilate(path):
     image = convert_to_binary(image)
     image_with_line = image.copy()
     original_image = image.copy()
+
+    max_transition_index  = find_max_transition(image)
 
     (h, w) = image.shape
     print("this is image shape: ", image.shape)
@@ -116,6 +117,7 @@ def segment_words_dilate(path):
             continue
         cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
         sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
+        get_cut_points(sub_word, max_transition_index, vertical_projection)
         # segment_character(sub_word)
         # display_image("sub word",sub_word)
         previous_width = int(xcoords[i])
@@ -160,5 +162,5 @@ if __name__ == '__main__':
 
         line_segmets_path = os.path.join(line_segmets_path, f) 
         print("line path: ", line_segmets_path)
-        processed_image = segment_lines(processed_image, line_segmets_path)
-        # segment_words_dilate(line_segmets_path)
+        # processed_image = segment_lines(processed_image, line_segmets_path)
+        segment_words_dilate(line_segmets_path)
