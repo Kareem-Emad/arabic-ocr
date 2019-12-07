@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from utils import display_image, most_frequent
 
 
@@ -14,8 +14,8 @@ def get_horizontal_projection(image):
 
     h, w = image.shape
     horizontal_projection = cv2.reduce(src=image, dim=-1, rtype=cv2.REDUCE_SUM, dtype=cv2.CV_32S)
-    plt.plot(range(h), horizontal_projection.tolist())
-    plt.savefig("./figs/horizontal_projection.png")
+    # plt.plot(range(h), horizontal_projection.tolist())
+    # plt.savefig("./figs/horizontal_projection.png")
     return horizontal_projection
 
 
@@ -24,8 +24,8 @@ def get_vertical_projection(image):
     h, w = image.shape
     vertical_projection = []
     vertical_projection = cv2.reduce(src=image, dim=0, rtype=cv2.REDUCE_SUM, dtype=cv2.CV_32S)
-    plt.plot(range(w), vertical_projection[0])
-    plt.savefig("./figs/vertical_projection.png")
+    # plt.plot(range(w), vertical_projection[0])
+    # plt.savefig("./figs/vertical_projection.png")
     return vertical_projection[0]
 
 
@@ -59,7 +59,6 @@ def get_largest_connected_component(image):
     # display_image("after erode+dilate", image)
     number_of_components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
     sizes = stats[:, -1]
-
     max_label = 1
     max_size = sizes[1]
     for i in range(2, number_of_components):

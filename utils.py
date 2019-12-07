@@ -3,7 +3,7 @@ import numpy as np
 
 
 def most_frequent(List):
-    if(type(List) is np.ndarray):
+    if (type(List) is np.ndarray):
         List = List.tolist()
     return max(set(List), key=List.count)
 
