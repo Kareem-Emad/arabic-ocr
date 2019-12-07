@@ -52,12 +52,13 @@ def segment_lines(image, directory_name):
         previous_height = int(ycoords[i])
         
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
-        r  = find_max_transition(image_cropped)
+        # r  = find_max_transition(image_cropped)
     display_image("segmented lines", image)
 
     image_cropped = original_image[previous_height:h, :]
     cv2.imwrite(directory_name + "/" + "segment_" + str(i + 1) + ".png", image_cropped)
     print(image.shape)
+    cv2.imwrite("segmented_lines.png", image)
     return image
 
 
@@ -66,6 +67,12 @@ def segment_words_dilate(path):
     # should have a loop here on all files
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     image = cv2.imread(os.path.join(path, files[0]), cv2.IMREAD_GRAYSCALE)
+    directory_name =  path+"/"+ files[0][:-4]
+    
+    if os.path.exists(directory_name):
+        shutil.rmtree(directory_name)
+
+    os.makedirs(directory_name)
     image = convert_to_binary(image)
     image_with_line = image.copy()
     original_image = image.copy()
@@ -118,7 +125,8 @@ def segment_words_dilate(path):
         cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
         sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
         get_cut_points(sub_word, max_transition_index, vertical_projection)
-        # segment_character(sub_word)
+        segment_character(sub_word)
+        cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", sub_word)
         # display_image("sub word",sub_word)
         previous_width = int(xcoords[i])
 
