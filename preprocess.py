@@ -88,9 +88,9 @@ def get_pen_size(image):
     
     # print("most frq hor: ", most_freq_horizontal)
 
-    if most_freq_horizontal > most_freq_vertical:
-        return most_freq_vertical
-    return most_freq_horizontal
+    # if most_freq_horizontal > most_freq_vertical:
+    #     return most_freq_vertical
+    return most_freq_vertical
     
 #call on line image  to find the max transition line, above the baseline
 def find_max_transition(image_original):
@@ -246,3 +246,87 @@ def segment_character(image):
 
     # cv2.line(image, (segmenataion_points[-1], 0), (segmenataion_points[-1], h), (255, 255, 255), 1)
     display_image("char seg",image)
+
+
+
+def contour_seg(image):
+
+    edged = image.copy()
+    contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    image_blank = np.zeros((edged.shape[0], edged.shape[1], 3), np.uint8)
+    cnt = max(contours, key=cv2.contourArea)
+    image_blank = np.zeros(edged.shape, np.uint8)
+    img = cv2.drawContours(image_blank, [cnt], 0, (255, 255, 255), 1) 
+
+    leftmost = tuple(cnt[cnt[:,:,0].argmin()][0])
+    rightmost = tuple(cnt[cnt[:,:,0].argmax()][0])
+    topmost = tuple(cnt[cnt[:,:,1].argmin()][0])
+    bottommost = tuple(cnt[cnt[:,:,1].argmax()][0])   
+
+    index_left = np.where((cnt == leftmost).all(axis=2))
+    index_right = np.where((cnt == rightmost).all(axis=2))
+    index_top = np.where((cnt == topmost).all(axis=2))
+    index_bottom = np.where((cnt == bottommost).all(axis=2))
+
+    img_cnt = np.zeros(image.shape, np.uint8)
+    y_points = []
+    x_points = []
+    upper_cnt =[]
+    for i in range(index_right[0][0], cnt.shape[0]):
+        point = (cnt[i][0][0], cnt[i][0][1])
+        y_points.append(point[1])
+        x_points.append(point[0])
+        img_cnt[point[1], point[0]] = image[point[1], point[0]]
+        cv2.circle(img, point, 1, (255,0,0), -1)
+
+
+    hp = get_horizontal_projection(img_cnt)
+    baseline = get_baseline_y_coord(hp)
+    baseline = most_frequent(y_points)
+    print("now baseline is: ", baseline)
+    pen_size = get_pen_size(img_cnt)
+    print("pen_size", pen_size)
+
+    cv2.imwrite("cnt.png", img)
+    cv2.imwrite("img_c nt.png", img_cnt)
+    min_y = min(y_points)
+    print("y_min: ", min_y)
+    print("y_points:", y_points)
+
+    count = 0
+    flag = False
+    length_consective = []
+    point_positions = []
+    for i in range(len(y_points)):
+
+       if not flag:
+           if y_points[i] == baseline:
+               count = 1
+               flag = True
+       else:
+            if not(y_points[i] == baseline):
+                flag = False
+                if count > 1:
+                    length_consective.append(count)
+                    point_positions.append(i)
+
+            else:
+                count += 1
+
+
+    peak_points = list(x_points[x] for x in point_positions)
+    seg_points = [x-1 for x in peak_points]
+
+
+    for i in range(len(seg_points)):
+        sub = img_cnt[:baseline, seg_points[i]]
+        print("sub: ", sub)
+        #need to add some threshold to eliminate too close seg points
+        if 255 in sub:
+            print("it's true")
+            continue
+        cv2.line(img_cnt, (seg_points[i], 0), (seg_points[i], image.shape[0]), (255, 255, 255), 1)
+
+    cv2.imwrite("segmented_char.png", img_cnt)
+
+

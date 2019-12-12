@@ -4,9 +4,11 @@ import cv2
 import os
 import shutil
 
-from utils import convert_to_binary, convert_to_binary_and_invert, display_image
+
+from utils import convert_to_binary, convert_to_binary_and_invert, display_image, get_distance_between_words
 from preprocess import get_baseline_y_coord, get_horizontal_projection, get_largest_connected_component
-from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition, get_cut_points
+from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition,\
+get_cut_points, contour_seg
 
 
 def segment_lines(image, directory_name):
@@ -47,12 +49,10 @@ def segment_lines(image, directory_name):
         if i == 0:
             continue
 
-        cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2)  # for debugging
+        cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2) 
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
         previous_height = int(ycoords[i])
-        
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
-        # r  = find_max_transition(image_cropped)
     display_image("segmented lines", image)
 
     image_cropped = original_image[previous_height:h, :]
@@ -62,35 +62,31 @@ def segment_lines(image, directory_name):
     return image
 
 
-def segment_words_dilate(path):
-
-    # should have a loop here on all files
+def segment_words(path):
+    """
+    this function keeps the list of word separatation points in word_separation list
+    but segments into sub words and saves the sub words segements in their designated directory
+    """
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     image = cv2.imread(os.path.join(path, files[0]), cv2.IMREAD_GRAYSCALE)
-    directory_name =  path+"/"+ files[0][:-4]
-    
+    directory_name = path + "/" + files[0][:-4]
+
     if os.path.exists(directory_name):
         shutil.rmtree(directory_name)
-
     os.makedirs(directory_name)
+
     image = convert_to_binary(image)
     image_with_line = image.copy()
     original_image = image.copy()
 
-    max_transition_index  = find_max_transition(image)
-
     (h, w) = image.shape
-    print("this is image shape: ", image.shape)
 
     # image_with_line = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
     horizontal_projection = get_horizontal_projection(image)
     baseline_y_coord = get_baseline_y_coord(horizontal_projection)
     cv2.line(image_with_line, (0, baseline_y_coord), (w, baseline_y_coord), (255, 255, 255), 1)
-    largest_connected_component = get_largest_connected_component(image_with_line)
 
-    image_without_dotting = cv2.bitwise_and(largest_connected_component, original_image)
-
-    display_image("image without dotting", image_without_dotting)
+    # display_image("image without dotting", image_without_dotting)
     vertical_projection = get_vertical_projection(image)
 
     print("shape of vertical projections is: ", len(vertical_projection))
@@ -98,6 +94,7 @@ def segment_words_dilate(path):
     x, count = 0, 0
     is_space = False
     xcoords = []
+    distances = []
 
     for i in range(w):
         if not is_space:
@@ -110,32 +107,50 @@ def segment_words_dilate(path):
             if vertical_projection[i] > 0:
                 is_space = False
                 xcoords.append(x / count)
+                distances.append(count)
 
             else:
                 x += i
                 count += 1
 
-    print("len of xcoords", len(xcoords))
-    previous_width = 0
+    distance = get_distance_between_words(distances)
 
+    previous_width = 0
+    word_separation = xcoords.copy()
+    print(word_separation)
+    print(len(word_separation))
     for i in range(len(xcoords)):
         if i == 0:
             previous_width = int(xcoords[i])
             continue
-        cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
-        sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
-        get_cut_points(sub_word, max_transition_index, vertical_projection)
-        segment_character(sub_word)
+
+        if distances[i-1] >= distance:
+            pass
+            # cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
+        else:
+            print(i)
+            word_separation[i-1] = -1
+        sub_word = original_image[:, previous_width:int(xcoords[i])]
         cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", sub_word)
-        # display_image("sub word",sub_word)
+            # display_image("sub word", sub_word)
         previous_width = int(xcoords[i])
 
-    cv2.line(image, (int(xcoords[-1]), 0), (int(xcoords[-1]), h), (255, 255, 255), 1)
-    sub_word = image_without_dotting[:, int(xcoords[-1]):w]
-    # display_image("sub word", sub_word)
-    # get_pen_size(sub_word)
+    if distances[-2] < distance:
+        word_separation[-2] = -1
+    
+    sub_word = original_image[:, int(xcoords[-1]):w]
+    cv2.imwrite(directory_name + "/" + "segment_" + str(len(xcoords)) + ".png", sub_word)
+    display_image("sub word", sub_word)
+
+
+    previous_width = 0
+    word_separation = list(filter(lambda a: a != 2, word_separation))
+    for i in range(len(word_separation)):
+        cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
+        previous_width = int(word_separation[i])
 
     display_image("final output", image)
+    cv2.imwrite("dis.png", image)
 
 
 if __name__ == '__main__':
@@ -167,8 +182,8 @@ if __name__ == '__main__':
         processed_image = deskew(processed_image)
         processed_image = convert_to_binary(processed_image)
         display_image("after deskew", processed_image)
-
-        line_segmets_path = os.path.join(line_segmets_path, f) 
-        print("line path: ", line_segmets_path)
+        cv2.imwrite("binary.png", processed_image)
+        line_segmets_path = os.path.join(line_segmets_path, f)
+     
         # processed_image = segment_lines(processed_image, line_segmets_path)
-        segment_words_dilate(line_segmets_path)
+        segment_words(line_segmets_path)

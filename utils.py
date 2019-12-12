@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from  more_itertools import unique_everseen
+
 
 
 def most_frequent(arr):
@@ -8,9 +10,10 @@ def most_frequent(arr):
     most_freq = values[np.argmax(counts)] 
 
     if most_freq == 0:
-        counts = counts[1:]
-        values = values[1:]
-        most_freq = values[np.argmax(counts)]
+        arr = arr[ arr != most_freq]
+        (values, counts) = np.unique(arr, return_counts=True)
+        most_freq = values[np.argmax(counts)] 
+
 
     return most_freq
 
@@ -33,25 +36,45 @@ def convert_to_binary_and_invert(image):
     return thresh
 
 
-def get_distances(image, base_line):
-    # print("these are the pixels along the baseline",image[base_line,:])
-    h, w = image.shape
-    cv2.circle(image, (h // 2, w // 2), 20, (0, 0, 0), 5)
-    # pixels_along_baseline = image[base_line,:]
-    is_first_point = False
-    distances = []
-    previous_point = 0
-    for i in range(w):
-        if image[base_line, i] == 255:
-            if is_first_point is False:
-                is_first_point = True
-                previous_point = i
-                print("this is the first point")
-                continue
-            if is_first_point:
-                distances.append(i - previous_point)
-                print("difference is: ", i - previous_point)
-                previous_point = i
+def get_distance_between_words(distances):
 
-                # cv2.circle(image, (i, base_line), 3, (0, 0, 255), -1)
-    # display_image("pen_size", image)
+    distances_soreted = sorted(distances, key=distances.count,reverse=True)
+    distances_soreted = list(unique_everseen(distances_soreted))
+    distance = max(distances_soreted[:3])
+    return distance
+
+    
+
+def thin_image(img):
+    # img = convert_to_binary(img)
+    
+    # ret, img = cv2.threshold(img, 127, 255, 0)
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    skel = np.zeros(img.shape, np.uint8)
+    size = np.size(img)
+    done = False
+    while (not done):
+        eroded = cv2.erode(img, element)
+        temp = cv2.dilate(eroded, element)
+        temp = cv2.subtract(img, temp)
+        skel = cv2.bitwise_or(skel, temp)
+        img = eroded.copy()
+        zeros = size - cv2.countNonZero(img)
+        if zeros == size:
+            done = True
+
+    return skel
+
+#TODO: test this template with letters like R
+def match_template(image):
+    height = 8
+    width = 8
+    template = np.zeros((height, width))
+    for i in range(2, height):
+        for j in range(3, width):
+            if (i == 2 and j == 3) or (i == 2 and j == 4):
+                continue
+        template[(i, j)] = 255
+
+        
+            
