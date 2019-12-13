@@ -14,9 +14,11 @@ get_cut_points, contour_seg
 def segment_lines(image, directory_name):
     (h, w) = image.shape[:2]
     original_image = image.copy()
-
+   
+    image = cv2.bitwise_not(image)
+    display_image("here", image)
     image = cv2.dilate(image, np.ones((3, 3), np.uint8), iterations=1)
-
+    
     horizontal_projection = get_horizontal_projection(image)
 
     y, count = 0, 0
@@ -68,16 +70,17 @@ def segment_words(path):
     but segments into sub words and saves the sub words segements in their designated directory
     """
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-    image = cv2.imread(os.path.join(path, files[0]), cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(os.path.join(path, files[0]))
     directory_name = path + "/" + files[0][:-4]
 
     if os.path.exists(directory_name):
         shutil.rmtree(directory_name)
     os.makedirs(directory_name)
 
-    image = convert_to_binary(image)
-    image_with_line = image.copy()
     original_image = image.copy()
+    image = convert_to_binary_and_invert(image)
+    image_with_line = image.copy()
+    
 
     (h, w) = image.shape
 
@@ -180,10 +183,12 @@ if __name__ == '__main__':
         display_image("source", image)
         processed_image = convert_to_binary_and_invert(image)
         processed_image = deskew(processed_image)
-        processed_image = convert_to_binary(processed_image)
+
+        processed_image = cv2.bitwise_not(processed_image)
+        print(processed_image.shape)
         display_image("after deskew", processed_image)
         cv2.imwrite("binary.png", processed_image)
-        line_segmets_path = os.path.join(line_segmets_path, f)
+        line_segmets_path = os.path.join(line_segmets_path, f[:-4])
      
         # processed_image = segment_lines(processed_image, line_segmets_path)
         segment_words(line_segmets_path)

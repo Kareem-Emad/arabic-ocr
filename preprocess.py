@@ -40,6 +40,7 @@ def deskew(image):
     else:
         angle = -angle
     # now rotate the image with the obtained angle
+    print("angle: ", angle)
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
     # calculate rotation matrix
