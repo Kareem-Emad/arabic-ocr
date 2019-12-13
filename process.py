@@ -65,7 +65,10 @@ def template_match(img, template):
     img2 = img.copy()
     w, h = template.shape[::-1]
     res = cv2.matchTemplate(img2, template, cv2.TM_CCOEFF_NORMED)
-    methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED'] # noqa
+    methods = [
+        'cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF',
+        'cv2.TM_SQDIFF_NORMED'
+    ]  # noqa
 
     for meth in methods:
         img = img2.copy()
@@ -350,14 +353,14 @@ def seg_chars(img):
 def sum_adjancent_values(arr):
     curr_val = arr[0]
     sum = 0
-    if(curr_val == 1):
+    if (curr_val == 1):
         sum += 1
 
     for i in range(0, len(arr)):
-        if(curr_val == 0 and arr[i] > 0):
+        if (curr_val == 0 and arr[i] > 0):
             sum += 1
             curr_val = 1
-        if(curr_val == 1 and arr[i] <= 0):
+        if (curr_val == 1 and arr[i] <= 0):
             curr_val = 0
     return sum
 
@@ -366,33 +369,33 @@ def get_interest_points(transitions_columns, transitions_rows, img):
     interest_points = []
 
     for i in range(0, transitions_columns.shape[0]):
-        if(transitions_columns[i] >= 4):
+        if (transitions_columns[i] >= 4):
             start_row = -1
             end_row = -1
             for j in range(0, img.shape[0]):
-                if(j != 0 and img[j][i] != img[j - 1][i]):
-                    if(start_row == -1):
+                if (j != 0 and img[j][i] != img[j - 1][i]):
+                    if (start_row == -1):
                         start_row = j
                     else:
                         end_row = j
 
             interest_point = (int((start_row + end_row) / 2), i)
-            if(img[interest_point[0]][interest_point[1]] == 0):
+            if (img[interest_point[0]][interest_point[1]] == 0):
                 print(f'[vertical`]start at {start_row} and end at {end_row} yeild point {interest_point}')
                 interest_points.append(interest_point)
 
     for i in range(0, transitions_rows.shape[0]):
-        if(transitions_rows[i] >= 4):
+        if (transitions_rows[i] >= 4):
             start_col = -1
             end_col = -1
             for j in range(0, img.shape[1]):
-                if(j != 0 and img[i][j] != img[i][j - 1]):
-                    if(start_col == -1):
+                if (j != 0 and img[i][j] != img[i][j - 1]):
+                    if (start_col == -1):
                         start_col = j
                     else:
                         end_col = j
             interest_point = (i, int((start_col + end_col) / 2))
-            if(img[interest_point[0]][interest_point[1]] == 0):
+            if (img[interest_point[0]][interest_point[1]] == 0):
                 print(f'[horz]start at {start_col} and end at {end_col} yeild point {interest_point}')
                 interest_points.append(interest_point)
     return interest_points
@@ -416,21 +419,37 @@ def label_interest_points(interest_ponts, w, h, img):
         blocked_dirs = []
         for dir in directions:
             curr_pt = (pt[0] + dir[0], pt[1] + dir[1])
-            while(h > curr_pt[0] and w > curr_pt[1] and curr_pt[0] >= 0 and curr_pt[1] >= 0):
-                if(curr_pt in interest_ponts):
+            while (h > curr_pt[0] and w > curr_pt[1] and curr_pt[0] >= 0 and curr_pt[1] >= 0):
+                if (curr_pt in interest_ponts):
                     print(f"Point {curr_pt} has been visited by {pt}")
                     interest_ponts.remove(curr_pt)
-                if(img[curr_pt[0]][curr_pt[1]] == 255):
+                if (img[curr_pt[0]][curr_pt[1]] == 255):
                     blocked_dirs.append(dir)
                     break
                 curr_pt = (curr_pt[0] + dir[0], curr_pt[1] + dir[1])
 
-        if(len(blocked_dirs) == len(directions)):
-            if((pt, 'HOLE') not in labeled_points):
+        if (len(blocked_dirs) == len(directions)):
+            if ((pt, 'HOLE') not in labeled_points):
                 labeled_points.append((pt, 'HOLE'))
         else:
-            if((pt, 'CONC') not in labeled_points):
-                labeled_points.append((pt, 'CONC'))
+
+            label = 'CONC'
+            if (W not in blocked_dirs):
+                label = 'L_CONC'
+            else:
+                if (W in blocked_dirs and S in blocked_dirs and E in blocked_dirs
+                        and (N not in blocked_dirs or NE not in blocked_dirs or NW not in blocked_dirs)):
+                    label = 'U_CONC'
+                else:
+                    if (E not in blocked_dirs):
+                        label = 'R_CONIC'
+                    else:
+                        if ((W in blocked_dirs and N in blocked_dirs and E in blocked_dirs and
+                             (S not in blocked_dirs or SE not in blocked_dirs or SW not in blocked_dirs))):
+                            label = 'D_CONIC'
+
+            if ((pt, label) not in labeled_points):
+                labeled_points.append((pt, label))
 
     return labeled_points
 
@@ -445,15 +464,29 @@ def recognize_char(input_path):
     interest_pts = get_interest_points(ver_transitions, horz_transitions, char_img)
 
     labeled_pts = label_interest_points(interest_pts, char_img.shape[1], char_img.shape[0], char_img)
+    score = 0
+    for lpt in labeled_pts:
+        label = lpt[1]
+        if(label == 'HOLE'):
+            score += 1
+        if(label == 'L_CONC'):
+            score += 4
+        if(label == 'R_CONIC'):
+            score += 4 ** 2
+        if(label == 'U_CONC'):
+            score += 4 ** 3
+        if(label == 'D_CONIC'):
+            score += 4 ** 4
 
     print(horz_transitions)
     print(ver_transitions)
     print(interest_pts)
     print(labeled_pts)
+    print(f'character score is {score}')
     display_image('character', char_img)
 
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
     ap = argparse.ArgumentParser()
 
     ap.add_argument("-o",
