@@ -417,15 +417,20 @@ def label_interest_points(interest_ponts, w, h, img):
         for dir in directions:
             curr_pt = (pt[0] + dir[0], pt[1] + dir[1])
             while(h > curr_pt[0] and w > curr_pt[1] and curr_pt[0] >= 0 and curr_pt[1] >= 0):
+                if(curr_pt in interest_ponts):
+                    print(f"Point {curr_pt} has been visited by {pt}")
+                    interest_ponts.remove(curr_pt)
                 if(img[curr_pt[0]][curr_pt[1]] == 255):
                     blocked_dirs.append(dir)
                     break
                 curr_pt = (curr_pt[0] + dir[0], curr_pt[1] + dir[1])
 
         if(len(blocked_dirs) == len(directions)):
-            labeled_points.append((pt, 'HOLE'))
+            if((pt, 'HOLE') not in labeled_points):
+                labeled_points.append((pt, 'HOLE'))
         else:
-            labeled_points.append((pt, 'CONC'))
+            if((pt, 'CONC') not in labeled_points):
+                labeled_points.append((pt, 'CONC'))
 
     return labeled_points
 
