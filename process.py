@@ -401,23 +401,26 @@ def get_interest_points(transitions_columns, transitions_rows, img):
 def label_interest_points(interest_ponts, w, h, img):
     labeled_points = []
     N = (-1, 0)
-    S = -1 * N
+    S = (-N[0], -N[1])
     E = (0, 1)
-    W = -1 * E
+    W = (-E[0], -E[1])
 
-    NE = N + E
-    NW = N + W
-    SE = S + E
-    SW = S + W
+    NE = (N[0] + E[0], N[1] + E[1])
+    NW = (N[0] + W[0], N[1] + W[1])
+    SE = (S[0] + E[0], S[1] + E[1])
+    SW = (S[0] + W[0], S[1] + W[1])
 
     directions = [N, S, E, W, NE, NW, SE, SW]
 
     for pt in interest_ponts:
         blocked_dirs = []
         for dir in directions:
-            curr_pt = pt + dir
-            if(h > curr_pt[0] and w > curr_pt[1] and img[curr_pt[0]][curr_pt[1]]):
-                blocked_dirs.append(dir)
+            curr_pt = (pt[0] + dir[0], pt[1] + dir[1])
+            while(h > curr_pt[0] and w > curr_pt[1] and curr_pt[0] >= 0 and curr_pt[1] >= 0):
+                if(img[curr_pt[0]][curr_pt[1]] == 255):
+                    blocked_dirs.append(dir)
+                    break
+                curr_pt = (curr_pt[0] + dir[0], curr_pt[1] + dir[1])
 
         if(len(blocked_dirs) == len(directions)):
             labeled_points.append((pt, 'HOLE'))
