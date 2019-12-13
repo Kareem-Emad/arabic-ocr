@@ -3,15 +3,15 @@ import argparse
 import cv2
 import os
 import shutil
-
+from matplotlib import pyplot as plt
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image
 from preprocess import get_base_line_y_coord, get_horizontal_projection, get_largest_connected_component
 from preprocess import get_pen_size, get_vertical_projection, deskew
 
 
-def segment_lines(image, directory_name):
-    (h, w) = image.shape[:2]
-    original_image = image.copy()
+def segment_lines(original_image, directory_name):
+    (h, w) = original_image.shape[:2]
+    image = original_image.copy()
 
     image = cv2.dilate(image, np.ones((3, 3), np.uint8), iterations=1)
 
@@ -59,6 +59,43 @@ def segment_lines(image, directory_name):
     cv2.imwrite(directory_name + "/" + "segment_" + str(i + 1) + ".png", image_cropped)
     print(image.shape)
     return image
+
+
+def template_match(img, template):
+    img2 = img.copy()
+    w, h = template.shape[::-1]
+    res = cv2.matchTemplate(img2, template, cv2.TM_CCOEFF_NORMED)
+    methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED'] # noqa
+
+    for meth in methods:
+        img = img2.copy()
+        method = eval(meth)
+
+        # Apply template Matching
+        res = cv2.matchTemplate(img, template, method)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+        # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
+        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+            top_left = min_loc
+        else:
+            top_left = max_loc
+        bottom_right = (top_left[0] + w, top_left[1] + h)
+
+        cv2.rectangle(img2, top_left, bottom_right, 255, 2)
+        display_image("template matched image", img2)
+
+
+def template_match22(img_gray, template):
+    w, h = template.shape[::-1]
+
+    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.8
+    loc = np.where(res >= threshold)
+    for pt in zip(*loc[::-1]):
+        cv2.rectangle(img_gray, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+
+    display_image('res.png', img_gray)
 
 
 def segment_words_dilate(path):
@@ -151,7 +188,10 @@ def segment_words_dilate(path):
         cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
         sub_word = image_without_dotting[:, previous_width:int(xcoords[i])]
         get_pen_size(sub_word)
-        seg_chars(sub_word)
+        # display_image("sub word", sub_word)
+        # cv2.imwrite("segmented_chars" + "/" + "char_" + str(i + 1) + ".png", sub_word)
+
+        # seg_chars(sub_word)
         # display_image("sub word", sub_word)
         previous_width = int(xcoords[i])
 
@@ -177,6 +217,15 @@ def calculate_vertical_transitions(img):
             if (j != 0 and img[j][i] != img[j - 1][i]):
                 vertical_transitions_bin[i] += 1
     return vertical_transitions_bin
+
+
+def calculate_horizonatal_transitions(img):
+    horz_transitions_bin = np.zeros(img.shape[0])
+    for i in range(0, img.shape[0]):
+        for j in range(0, img.shape[1]):
+            if (j != 0 and img[i][j] != img[i][j - 1]):
+                horz_transitions_bin[i] += 1
+    return horz_transitions_bin
 
 
 def get_first_match_for_a_criteria(vertical_sums, threshold, start, end):
@@ -298,8 +347,105 @@ def seg_chars(img):
     display_image("sub word", img)
 
 
-if __name__ == '__main__':
+def sum_adjancent_values(arr):
+    curr_val = arr[0]
+    sum = 0
+    if(curr_val == 1):
+        sum += 1
 
+    for i in range(0, len(arr)):
+        if(curr_val == 0 and arr[i] > 0):
+            sum += 1
+            curr_val = 1
+        if(curr_val == 1 and arr[i] <= 0):
+            curr_val = 0
+    return sum
+
+
+def get_interest_points(transitions_columns, transitions_rows, img):
+    interest_points = []
+
+    for i in range(0, transitions_columns.shape[0]):
+        if(transitions_columns[i] >= 4):
+            start_row = -1
+            end_row = -1
+            for j in range(0, img.shape[0]):
+                if(j != 0 and img[j][i] != img[j - 1][i]):
+                    if(start_row == -1):
+                        start_row = j
+                    else:
+                        end_row = j
+
+            interest_point = (int((start_row + end_row) / 2), i)
+            if(img[interest_point[0]][interest_point[1]] == 0):
+                print(f'[vertical`]start at {start_row} and end at {end_row} yeild point {interest_point}')
+                interest_points.append(interest_point)
+
+    for i in range(0, transitions_rows.shape[0]):
+        if(transitions_rows[i] >= 4):
+            start_col = -1
+            end_col = -1
+            for j in range(0, img.shape[1]):
+                if(j != 0 and img[i][j] != img[i][j - 1]):
+                    if(start_col == -1):
+                        start_col = j
+                    else:
+                        end_col = j
+            interest_point = (i, int((start_col + end_col) / 2))
+            if(img[interest_point[0]][interest_point[1]] == 0):
+                print(f'[horz]start at {start_col} and end at {end_col} yeild point {interest_point}')
+                interest_points.append(interest_point)
+    return interest_points
+
+
+def label_interest_points(interest_ponts, w, h, img):
+    labeled_points = []
+    N = (-1, 0)
+    S = -1 * N
+    E = (0, 1)
+    W = -1 * E
+
+    NE = N + E
+    NW = N + W
+    SE = S + E
+    SW = S + W
+
+    directions = [N, S, E, W, NE, NW, SE, SW]
+
+    for pt in interest_ponts:
+        blocked_dirs = []
+        for dir in directions:
+            curr_pt = pt + dir
+            if(h > curr_pt[0] and w > curr_pt[1] and img[curr_pt[0]][curr_pt[1]]):
+                blocked_dirs.append(dir)
+
+        if(len(blocked_dirs) == len(directions)):
+            labeled_points.append((pt, 'HOLE'))
+        else:
+            labeled_points.append((pt, 'CONC'))
+
+    return labeled_points
+
+
+def recognize_char(input_path):
+    # segmented_char/3een_start.png
+    char_img = convert_to_binary(cv2.imread(input_path, 0))
+    char_img = (255 - char_img)
+    horz_transitions = calculate_horizonatal_transitions(char_img)
+    ver_transitions = calculate_vertical_transitions(char_img)
+
+    interest_pts = get_interest_points(ver_transitions, horz_transitions, char_img)
+
+    labeled_pts = label_interest_points(interest_pts, char_img.shape[1], char_img.shape[0], char_img)
+
+    print(horz_transitions)
+    print(ver_transitions)
+    print(interest_pts)
+    print(labeled_pts)
+    display_image('character', char_img)
+
+
+if __name__ == '__main__':   
     ap = argparse.ArgumentParser()
 
     ap.add_argument("-o",
@@ -311,12 +457,15 @@ if __name__ == '__main__':
                     "--input-path",
                     required=False,
                     help="path to line segments file",
-                    default="./inputs")
+                    default="./segmented_char/3een_start.png")
+
     # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs") # noqa
 
     args = vars(ap.parse_args())
     print(args)
     input_path = args["input_path"]
+    recognize_char(input_path)
+    """
     line_segmets_path = args["line_segments_path"]
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
@@ -331,3 +480,4 @@ if __name__ == '__main__':
 
         processed_image = segment_lines(processed_image, line_segmets_path)
         segment_words_dilate(line_segmets_path)
+    """
