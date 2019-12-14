@@ -66,12 +66,37 @@ def get_largest_connected_component(image):
             max_label = i
             max_size = sizes[i]
     print("max label is: ", max_label)
+    # image2 = np.zeros(output.shape)
+
+    # image2[output == max_label] = 255
+    # image2 = image2.astype(np.uint8)
+    # display_image("Biggest component", output)
+    output[output == max_label] = 0
+    return output, max_label
+
+
+def remove_dots(image):
+    # image = cv2.erode(image, np.ones((2,2), np.uint8), iterations=1)
+    # image = cv2.dilate(image,  np.ones((2,2), np.uint8), iterations=1)
+
+    # image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))
+    # image = cv2.morphologyEx(image, cv2.MORPH_OPEN, np.ones((2,2), np.uint8))
+
+    # display_image("after erode+dilate", image)
+    number_of_components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
+    sizes = stats[:, -1]
+    max_label = 1
+    max_size = sizes[1]
+    for i in range(2, number_of_components):
+        if sizes[i] > max_size:
+            max_label = i
+            max_size = sizes[i]
+    print("max label is: ", max_label)
     image2 = np.zeros(output.shape)
 
     image2[output == max_label] = 255
     image2 = image2.astype(np.uint8)
-    display_image("Biggest component", image2)
-
+    # display_image("Biggest component", output)
     return image2
 
 

@@ -3,10 +3,9 @@ import argparse
 import cv2
 import os
 import shutil
-from matplotlib import pyplot as plt
-from utils import convert_to_binary, convert_to_binary_and_invert, display_image
+from utils import convert_to_binary, display_image
 from preprocess import get_base_line_y_coord, get_horizontal_projection, get_largest_connected_component
-from preprocess import get_pen_size, get_vertical_projection, deskew
+from preprocess import get_pen_size, get_vertical_projection, remove_dots
 
 
 def segment_lines(original_image, directory_name):
@@ -454,10 +453,99 @@ def label_interest_points(interest_ponts, w, h, img):
     return labeled_points
 
 
+def eliminate_extra_padding(img):
+    horz_sum = np.sum(img, axis=1)
+    ver_sum = np.sum(img, axis=0)
+    upper_x = -1
+    upper_y = -1
+    lower_x = -1
+    lower_y = -1
+    for i in range(0, horz_sum.shape[0]):
+        if(horz_sum[i] != 0):
+            if(upper_x == -1):
+                upper_x = i
+            else:
+                lower_x = i
+
+    for i in range(0, ver_sum.shape[0]):
+        if(ver_sum[i] != 0):
+            if(upper_y == -1):
+                upper_y = i
+            else:
+                lower_y = i
+    return img[upper_x:lower_x + 1, upper_y:lower_y + 1]
+
+
+def is_hamza(dots_img):
+    v_t = calculate_vertical_transitions(dots_img)
+    if(np.max(v_t) >= 4):
+        return True
+    else:
+        return False
+
+
+def is_3_dots_connected(dots_img):
+    h_t = calculate_horizonatal_transitions(dots_img)
+    if(np.max(h_t) >= 4):
+        return True
+    else:
+        return False
+
+
+def recognize_dots(char_img):
+    dots_img, max_label = get_largest_connected_component(char_img)
+    max_label = max(np.max(dots_img), max_label)
+    if(max_label == 1):
+        return -1, 0, 0
+    if(max_label == 2):
+        if(is_hamza(dots_img)):
+            max_label = 5  # hamza label is 4
+        else:
+            if(is_3_dots_connected(dots_img)):
+                max_label = 4
+
+    horizontal_sums = np.sum(char_img, axis=1)
+
+    char_highest_point = -1
+    for i in range(0, horizontal_sums.shape[0]):
+        if(horizontal_sums[i] != 0):
+            char_highest_point = i
+            break
+
+    dots_horz_sum = np.sum(dots_img, axis=1)
+    lowest_dots_point = -1
+    for i in range(0, dots_horz_sum.shape[0]):
+        if(dots_horz_sum[i] != 0):
+            lowest_dots_point = i
+
+    highest_dots_point = -1
+    for i in range(0, dots_horz_sum.shape[0]):
+        if(dots_horz_sum[i] != 0):
+            highest_dots_point = i
+            break
+
+    if(char_highest_point == highest_dots_point):
+        return 1, 1, max_label - 1  # upper pos
+
+    char_lowest_point = -1
+    for i in range(0, horizontal_sums.shape[0]):
+        if(horizontal_sums[i] != 0):
+            char_lowest_point = i
+
+    if(char_lowest_point == lowest_dots_point):
+        return 3, 1, max_label - 1  # under pos
+
+    return 2, 1, max_label - 1  # mid pos
+
+
 def recognize_char(input_path):
     # segmented_char/3een_start.png
     char_img = convert_to_binary(cv2.imread(input_path, 0))
     char_img = (255 - char_img)
+    img_dotted = char_img.copy()
+    char_img = remove_dots(char_img)
+    # display_image('no dots', char_img)
+
     horz_transitions = calculate_horizonatal_transitions(char_img)
     ver_transitions = calculate_vertical_transitions(char_img)
 
@@ -483,7 +571,25 @@ def recognize_char(input_path):
     print(interest_pts)
     print(labeled_pts)
     print(f'character score is {score}')
-    display_image('character', char_img)
+
+    char_img = eliminate_extra_padding(img_dotted)
+    form_ratio = char_img.shape[0] / char_img.shape[1]
+    print(f'ratio is {form_ratio}')
+    char_form = -1
+    if(form_ratio <= 0.781):
+        char_form = 1
+    if(form_ratio >= 0.8 and form_ratio <= 1.1):
+        char_form = 2
+    if(form_ratio > 1.1):
+        char_form = 3
+
+    h, w = char_img.shape
+    corvar = (char_img[0][0] / 255) * 1 + (char_img[0][w - 1] / 255) * 2 + (char_img[h - 1][w - 1] / 255) * 4 + (char_img[h - 1][0] / 255) * 8 # noqa
+
+    pospunc, expunc, numpunc = recognize_dots(img_dotted)
+    print(f'character is of form {char_form} and corner variance {corvar}')
+    print(f'pospunc is {pospunc} | expunc is {expunc} | numpunc is {numpunc}')
+    display_image('character', img_dotted)
 
 
 if __name__ == '__main__':
