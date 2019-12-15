@@ -589,6 +589,8 @@ def recognize_char(input_path):
     pospunc, expunc, numpunc = recognize_dots(img_dotted)
     print(f'character is of form {char_form} and corner variance {corvar}')
     print(f'pospunc is {pospunc} | expunc is {expunc} | numpunc is {numpunc}')
+    feature_vector = [char_form, corvar, expunc, pospunc, numpunc]
+    print(f'feature vector: {feature_vector}')
     display_image('character', img_dotted)
 
 
