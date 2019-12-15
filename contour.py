@@ -34,7 +34,7 @@ if __name__ == '__main__':
     input_path = args["input_path"]
     line_segmets_path = args["line_segments_path"]
 
-    image = cv2.imread("./segmented_lines/csep1622/segment_1/segment_41.png")
+    image = cv2.imread("./segmented_lines/csep1622/segment_1/segment_28.png")
     display_image("source", image)
 
     processed_image = convert_to_binary_and_invert(image)
@@ -124,15 +124,16 @@ if __name__ == '__main__':
     for i in range(len(y_points)):
 
        if not flag:
-           if y_points[i] == baseline:
+           if y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline:
                count = 1
                flag = True
        else:
-            if not(y_points[i] == baseline):
+            if not(y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline):
                 flag = False
                 if count > 2:
                     length_consective.append(count)
                     point_positions.append(i)
+                    print("count: ", count)
 
             else:
                 count += 1
@@ -145,18 +146,77 @@ if __name__ == '__main__':
     sub_x = []
     j = 0
 
+    final = img_cnt.copy()
+    segment_points = []
     for i in point_positions:
         sub_x = x_points[i-length_consective[j] : i]
         j += 1
         print("sub x:", sub_x)
 
+        # for k in range(len(sub_x)-1 , -1, -1):
+        canidatate_points = []
         for k in range(len(sub_x)):
-            sub = img_cnt[:baseline, sub_x[k]]
-            print("sub: ", sub)
+            sub_above = img_cnt[:baseline, sub_x[k]]
+            # sub_below = img_cnt[baseline + 2:, sub_x[k]]
+            # print("sub_above: ", sub_above)
+            # print("sub_below:, ", sub_below)
             #need to add some threshold to eliminate too close seg points
-            if 255 not in  sub:
-                cv2.line(img_cnt, (sub_x[k], 0), (sub_x[k], image.shape[0]), (255, 255, 255), 1)
-                break
+            if 255 not in sub_above:
+                # cv2.line(final, (sub_x[k], 0), (sub_x[k], image.shape[0]), (255, 255, 255), 1)
+                # segment_points.append(sub_x[k])
+                print("there is a point")
+                canidatate_points.append(sub_x[k])
+        
+        if len(canidatate_points) > 0:
+            print("can", canidatate_points)
+            segment_points.append(canidatate_points[len(canidatate_points) // 2])
+            print("seg @@@@@: ", segment_points)
+        
+    if len(segment_points) < 1:
+       #return
+       exit()
+    delete_point = False
+    segment_points.sort()
+    print("segment points: ", segment_points)
+    for i in range(1, len(segment_points)):
+        # cv2.imwrite("sa_" + str(i) + ".png", img_cnt[:baseline, segment_points[i-1]: segment_points[i]])
+        if (img_cnt[:baseline, segment_points[i-1]: segment_points[i]] == 0).all():
+            delete_point = True
+            # print(img_cnt[:baseline, segment_points[i-1]: segment_points[i]])
+            print("####seg :", i-1 , i)
+            print("and ",  segment_points[i-1],  segment_points[i])
+            segment_points[i-1] = -1
 
-    display_image("final", img_cnt)
-    cv2.imwrite("final.png", img_cnt)
+    if delete_point:
+        segment_points.remove(-1)
+
+    if len(segment_points) > 1:
+        next_last_seg_point = segment_points[1]
+    else:
+        next_last_seg_point = img_cnt.shape[1]
+
+    last_seg_point = segment_points[0]
+    last_seg_hp = get_horizontal_projection(img_cnt[:baseline, last_seg_point:next_last_seg_point])
+    print(last_seg_hp.shape)
+
+    first_non_zero_index = (last_seg_hp != 0).argmax(axis=0)[0]
+    print(first_non_zero_index)
+
+
+    # print(get_horizontal_projection(img_cnt[baseline - 1:baseline +2, 0:last_seg_point]))
+    # print(img[baseline + 3:, 0:last_seg_point])
+    # this is for the dall and zal at the end of a sentence
+    if (first_non_zero_index / last_seg_hp.shape[0]) < 0.85 and (last_seg_hp[first_non_zero_index:] != 0).all()\
+        and (img[baseline - 1:baseline + 2, 0:last_seg_point] != 0).any()\
+        and (img[0:baseline - 2, 0:last_seg_point] == 0).all()\
+        and (img[baseline + 3:, 0:last_seg_point] == 0).all(): 
+        print("here", last_seg_hp[first_non_zero_index:])
+        segment_points = segment_points[1:]
+        print("this is a dal at the end")
+
+    for seg_point in segment_points:
+        if seg_point != -1:
+            cv2.line(final, (seg_point, 0), (seg_point, image.shape[0]), (255, 255, 255), 1)
+            
+    display_image("final", final)
+    cv2.imwrite("final.png", final)
