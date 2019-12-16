@@ -1,0 +1,56 @@
+ا
+start
+ب
+start mid end
+ت
+end mid marbota marbota separte
+ث
+start
+ج
+start mid separte
+ح
+start
+خ
+د
+end separte
+ذ
+ر
+done
+ز
+end
+س
+start mid end
+ش
+start mid
+ص
+ض
+mid separte
+ط(taa2)
+mid
+ظ(thaa2)
+start
+ع
+mid
+غ
+ف
+mid separte
+ق(kaaf)
+start separte
+ك
+start separte
+ل
+mid
+م
+mid start end
+ن
+separte end
+ه
+end mid
+و
+wow bs wow hamza end
+ى
+start mid end end(with underline dots)
+لا
+separte end
+ء
+separte start(3la nabra)
