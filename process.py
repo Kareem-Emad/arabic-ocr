@@ -498,12 +498,12 @@ def recognize_dots(char_img):
 
 
 def recognize_template(img, w, feat_vec):
-    last_accepted_i = - w
+    last_accepted_i = -w
     start_pts = []
-    #  display_image('character segemnted image', img)
+    # display_image('character segemnted image', img)
 
     for i in range(0, img.shape[1] - w):
-        if(last_accepted_i + w > i):
+        if (last_accepted_i + w > i):
             continue
         subimage = img[:, i:i + w + 1]
         try:
@@ -515,7 +515,6 @@ def recognize_template(img, w, feat_vec):
                 start_pts.append(i)
         except Exception as e:
             print(e)
-
     # display_image('character segemnted image', img)
     return start_pts
 
@@ -553,9 +552,13 @@ def recognize_char(char_img):
     # print(interest_pts)
     # print(labeled_pts)
     # print(f'character score is {score}')
-
+    if (char_img.shape[1] == 0 or char_img.shape[0] == 0):
+        return []
     char_img = eliminate_extra_padding(img_dotted)
-    form_ratio = char_img.shape[0] / char_img.shape[1]
+    try:
+        form_ratio = char_img.shape[0] / char_img.shape[1]
+    except Exception:
+        return []
 
     # print(f'ratio is {form_ratio}')
     char_form = -1
@@ -567,8 +570,11 @@ def recognize_char(char_img):
         char_form = 3
 
     h, w = char_img.shape
-    corvar = (char_img[0][0] / 255) * 1 + (char_img[0][w - 1] / 255) * 2 + (
-        char_img[h - 1][w - 1] / 255) * 4 + (char_img[h - 1][0] / 255) * 8  # noqa
+    try:
+        corvar = (char_img[0][0] / 255) * 1 + (char_img[0][w - 1] / 255) * 2 + (
+            char_img[h - 1][w - 1] / 255) * 4 + (char_img[h - 1][0] / 255) * 8  # noqa
+    except Exception:
+        return []
 
     pospunc, expunc, numpunc = recognize_dots(img_dotted)
     # print(f'character is of form {char_form} and corner variance {corvar}')
@@ -603,13 +609,17 @@ if __name__ == '__main__':
     """
     # print(f'img shape {char_img.shape}')
     # feature_vector = recognize_char(char_img)
-    char_w = [9, 8, 14, 9, 9, 9, 9, 7, 9, 6, 8, 8]
+    char_w = [24, 13, 9, 8, 14, 9, 9, 9, 9, 7, 9, 6, 8, 8, 9, 12, 8, 7, 12, 6, 9, 13]
 
-    line_img = convert_to_binary(cv2.imread('segmented_lines/segment_2.png', 0))
-
-    feat_vec = [[5, -1, 8.0, 1, 2, 1], [6, -1, 8.0, 0, -1, 0], [128, 2, 0.0, 1, 1, 1], [2, 2, 0.0, 1, 3, 1],
-                [18, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 2], [65, 3, 0.0, 1, 1, 2],
-                [65, 3, 4.0, 1, 1, 2], [65, -1, 8.0, 1, 3, 1], [4, -1, 8.0, 0, -1, 0], [4, -1, 0.0, 0, -1, 0]]
+    line_img = convert_to_binary(cv2.imread('segmented_lines/segment_1.png', 0))
+    # display_image('', line_img)
+    feat_vec = [[192, 1, 0.0, 0, -1, 0], [64, 1, 12.0, 0, -1, 0], [5, -1, 8.0, 1, 2, 1], [6, -1, 8.0, 0, -1, 0],
+                [128, 2, 0.0, 1, 1, 1], [2, 2, 0.0, 1, 3, 1], [18, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 1],
+                [2, 3, 4.0, 1, 1, 2], [65, 3, 0.0, 1, 1, 2], [65, 3, 4.0, 1, 1, 2], [65, -1, 8.0, 1, 3, 1],
+                [4, -1, 8.0, 0, -1, 0], [4, -1, 0.0, 0, -1, 0], [8, 2, 12.0, 1, 1, 1], [3, 1, 4.0, 1, 1, 1],
+                [0, 2, 12.0, 1, 1, 2], [0, 3, 4.0, 1, 1, 3], [65, 3, 0.0, 1, 1, 3], [0, -1, 12.0, 1, 1, 2],
+                [85, 2, 12.0, 1, 1, 1], [264, 1, 12.0, 0, -1, 0]]
+    #  [0, 3, 5.0, 0, -1, 0], [0, 3, 13.0, 0, -1, 0], [4, 3, 11.0, 0, -1, 0]
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
     for f in files:
