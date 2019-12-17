@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 # import matplotlib.pyplot as plt
-from utils import display_image, most_frequent
+from utils import most_frequent
 
 
 def get_base_line_y_coord(horizontal_projection):
@@ -65,7 +65,7 @@ def get_largest_connected_component(image):
         if sizes[i] > max_size:
             max_label = i
             max_size = sizes[i]
-    print("max label is: ", max_label)
+    # print("max label is: ", max_label)
     # image2 = np.zeros(output.shape)
 
     # image2[output == max_label] = 255
@@ -91,7 +91,7 @@ def remove_dots(image):
         if sizes[i] > max_size:
             max_label = i
             max_size = sizes[i]
-    print("max label is: ", max_label)
+    # print("max label is: ", max_label)
     image2 = np.zeros(output.shape)
 
     image2[output == max_label] = 255

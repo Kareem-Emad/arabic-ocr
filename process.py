@@ -3,7 +3,7 @@ import argparse
 import cv2
 import os
 import shutil
-from utils import convert_to_binary, display_image
+from utils import convert_to_binary, display_image, convert_to_binary_and_invert
 from preprocess import get_base_line_y_coord, get_horizontal_projection, get_largest_connected_component
 from preprocess import get_pen_size, get_vertical_projection, remove_dots
 
@@ -56,48 +56,8 @@ def segment_lines(original_image, directory_name):
 
     image_cropped = original_image[previous_height:h, :]
     cv2.imwrite(directory_name + "/" + "segment_" + str(i + 1) + ".png", image_cropped)
-    print(image.shape)
+    # print(image.shape)
     return image
-
-
-def template_match(img, template):
-    img2 = img.copy()
-    w, h = template.shape[::-1]
-    res = cv2.matchTemplate(img2, template, cv2.TM_CCOEFF_NORMED)
-    methods = [
-        'cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF',
-        'cv2.TM_SQDIFF_NORMED'
-    ]  # noqa
-
-    for meth in methods:
-        img = img2.copy()
-        method = eval(meth)
-
-        # Apply template Matching
-        res = cv2.matchTemplate(img, template, method)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-
-        # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
-        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-            top_left = min_loc
-        else:
-            top_left = max_loc
-        bottom_right = (top_left[0] + w, top_left[1] + h)
-
-        cv2.rectangle(img2, top_left, bottom_right, 255, 2)
-        display_image("template matched image", img2)
-
-
-def template_match22(img_gray, template):
-    w, h = template.shape[::-1]
-
-    res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.8
-    loc = np.where(res >= threshold)
-    for pt in zip(*loc[::-1]):
-        cv2.rectangle(img_gray, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-
-    display_image('res.png', img_gray)
 
 
 def segment_words_dilate(path):
@@ -109,7 +69,7 @@ def segment_words_dilate(path):
     original_image = image.copy()
 
     (h, w) = image.shape
-    print("this is image shape: ", image.shape)
+    # print("this is image shape: ", image.shape)
     """
     img = image
     size = np.size(img)
@@ -158,7 +118,7 @@ def segment_words_dilate(path):
     display_image("image without dotting", image_without_dotting)
     vertical_projection = get_vertical_projection(image)
 
-    print("shape of vertical projections is: ", len(vertical_projection))
+    # print("shape of vertical projections is: ", len(vertical_projection))
 
     x, count = 0, 0
     is_space = False
@@ -180,7 +140,7 @@ def segment_words_dilate(path):
                 x += i
                 count += 1
 
-    print("len of xcoords", len(xcoords))
+    # print("len of xcoords", len(xcoords))
     previous_width = 0
 
     for i in range(len(xcoords)):
@@ -313,7 +273,6 @@ def seg_chars(img):
                     if (k != 0 and img[img.shape[0] - k - 1][j1 - i - 1] != 0):
                         bottom_line_i = img.shape[0] - k - 1
                         break
-                # import ipdb; ipdb.set_trace()
                 is_matching = is_matching_b_criteria(junction_line, top_line_i, bottom_line_i, vertical_sums,
                                                      vertical_transitions_bin, threshold, top_line_j1, i)
                 if (is_matching):
@@ -341,11 +300,11 @@ def seg_chars(img):
                         first_time = False
                         cv2.line(img, (j1, 0), (j1, 32), (255, 255, 255), 1)
                     cv2.line(img, (j2, 0), (j2, 32), (255, 255, 255), 1)
-                    print(f" found character starting at {j1} and ending at {j2}")
+                    #  print(f" found character starting at {j1} and ending at {j2}")
                     break
             if (j2 == -1):
                 break
-    print("End OF CURRENT WORD CHARACTERS")
+    # print("End OF CURRENT WORD CHARACTERS")
     display_image("sub word", img)
 
 
@@ -380,7 +339,7 @@ def get_interest_points(transitions_columns, transitions_rows, img):
 
             interest_point = (int((start_row + end_row) / 2), i)
             if (img[interest_point[0]][interest_point[1]] == 0):
-                print(f'[vertical`]start at {start_row} and end at {end_row} yeild point {interest_point}')
+                # print(f'[vertical`]start at {start_row} and end at {end_row} yeild point {interest_point}')
                 interest_points.append(interest_point)
 
     for i in range(0, transitions_rows.shape[0]):
@@ -395,7 +354,7 @@ def get_interest_points(transitions_columns, transitions_rows, img):
                         end_col = j
             interest_point = (i, int((start_col + end_col) / 2))
             if (img[interest_point[0]][interest_point[1]] == 0):
-                print(f'[horz]start at {start_col} and end at {end_col} yeild point {interest_point}')
+                # print(f'[horz]start at {start_col} and end at {end_col} yeild point {interest_point}')
                 interest_points.append(interest_point)
     return interest_points
 
@@ -420,7 +379,7 @@ def label_interest_points(interest_ponts, w, h, img):
             curr_pt = (pt[0] + dir[0], pt[1] + dir[1])
             while (h > curr_pt[0] and w > curr_pt[1] and curr_pt[0] >= 0 and curr_pt[1] >= 0):
                 if (curr_pt in interest_ponts):
-                    print(f"Point {curr_pt} has been visited by {pt}")
+                    # print(f"Point {curr_pt} has been visited by {pt}")
                     interest_ponts.remove(curr_pt)
                 if (img[curr_pt[0]][curr_pt[1]] == 255):
                     blocked_dirs.append(dir)
@@ -461,15 +420,15 @@ def eliminate_extra_padding(img):
     lower_x = -1
     lower_y = -1
     for i in range(0, horz_sum.shape[0]):
-        if(horz_sum[i] != 0):
-            if(upper_x == -1):
+        if (horz_sum[i] != 0):
+            if (upper_x == -1):
                 upper_x = i
             else:
                 lower_x = i
 
     for i in range(0, ver_sum.shape[0]):
-        if(ver_sum[i] != 0):
-            if(upper_y == -1):
+        if (ver_sum[i] != 0):
+            if (upper_y == -1):
                 upper_y = i
             else:
                 lower_y = i
@@ -478,7 +437,7 @@ def eliminate_extra_padding(img):
 
 def is_hamza(dots_img):
     v_t = calculate_vertical_transitions(dots_img)
-    if(np.max(v_t) >= 4):
+    if (np.max(v_t) >= 4):
         return True
     else:
         return False
@@ -486,7 +445,7 @@ def is_hamza(dots_img):
 
 def is_3_dots_connected(dots_img):
     h_t = calculate_horizonatal_transitions(dots_img)
-    if(np.max(h_t) >= 4):
+    if (np.max(h_t) >= 4):
         return True
     else:
         return False
@@ -495,53 +454,76 @@ def is_3_dots_connected(dots_img):
 def recognize_dots(char_img):
     dots_img, max_label = get_largest_connected_component(char_img)
     max_label = max(np.max(dots_img), max_label)
-    if(max_label == 1):
+    if (max_label == 1):
         return -1, 0, 0
-    if(max_label == 2):
-        if(is_hamza(dots_img)):
+    if (max_label == 2):
+        if (is_hamza(dots_img)):
             max_label = 5  # hamza label is 4
         else:
-            if(is_3_dots_connected(dots_img)):
+            if (is_3_dots_connected(dots_img)):
                 max_label = 4
 
     horizontal_sums = np.sum(char_img, axis=1)
 
     char_highest_point = -1
     for i in range(0, horizontal_sums.shape[0]):
-        if(horizontal_sums[i] != 0):
+        if (horizontal_sums[i] != 0):
             char_highest_point = i
             break
 
     dots_horz_sum = np.sum(dots_img, axis=1)
     lowest_dots_point = -1
     for i in range(0, dots_horz_sum.shape[0]):
-        if(dots_horz_sum[i] != 0):
+        if (dots_horz_sum[i] != 0):
             lowest_dots_point = i
 
     highest_dots_point = -1
     for i in range(0, dots_horz_sum.shape[0]):
-        if(dots_horz_sum[i] != 0):
+        if (dots_horz_sum[i] != 0):
             highest_dots_point = i
             break
 
-    if(char_highest_point == highest_dots_point):
+    if (char_highest_point == highest_dots_point):
         return 1, 1, max_label - 1  # upper pos
 
     char_lowest_point = -1
     for i in range(0, horizontal_sums.shape[0]):
-        if(horizontal_sums[i] != 0):
+        if (horizontal_sums[i] != 0):
             char_lowest_point = i
 
-    if(char_lowest_point == lowest_dots_point):
+    if (char_lowest_point == lowest_dots_point):
         return 3, 1, max_label - 1  # under pos
 
     return 2, 1, max_label - 1  # mid pos
 
 
-def recognize_char(input_path):
+def recognize_template(img, w, feat_vec):
+    last_accepted_i = - w
+    start_pts = []
+    #  display_image('character segemnted image', img)
+
+    for i in range(0, img.shape[1] - w):
+        if(last_accepted_i + w > i):
+            continue
+        subimage = img[:, i:i + w + 1]
+        try:
+            curr_feat_vec = recognize_char(subimage)
+            if (curr_feat_vec == feat_vec):
+                last_accepted_i = i
+                # cv2.line(img, (i, 0), (i, img.shape[0]), (255, 255, 255), 1)  # for debugging
+                # cv2.line(img, (i + w, 0), (i + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
+                start_pts.append(i)
+        except Exception as e:
+            print(e)
+
+    # display_image('character segemnted image', img)
+    return start_pts
+
+
+def recognize_char(char_img):
+
     # segmented_char/3een_start.png
-    char_img = convert_to_binary(cv2.imread(input_path, 0))
-    char_img = (255 - char_img)
+
     img_dotted = char_img.copy()
     char_img = remove_dots(char_img)
     # display_image('no dots', char_img)
@@ -555,43 +537,45 @@ def recognize_char(input_path):
     score = 0
     for lpt in labeled_pts:
         label = lpt[1]
-        if(label == 'HOLE'):
+        if (label == 'HOLE'):
             score += 1
-        if(label == 'L_CONC'):
+        if (label == 'L_CONC'):
             score += 4
-        if(label == 'R_CONIC'):
-            score += 4 ** 2
-        if(label == 'U_CONC'):
-            score += 4 ** 3
-        if(label == 'D_CONIC'):
-            score += 4 ** 4
+        if (label == 'R_CONIC'):
+            score += 4**2
+        if (label == 'U_CONC'):
+            score += 4**3
+        if (label == 'D_CONIC'):
+            score += 4**4
 
-    print(horz_transitions)
-    print(ver_transitions)
-    print(interest_pts)
-    print(labeled_pts)
-    print(f'character score is {score}')
+    # print(horz_transitions)
+    # print(ver_transitions)
+    # print(interest_pts)
+    # print(labeled_pts)
+    # print(f'character score is {score}')
 
     char_img = eliminate_extra_padding(img_dotted)
     form_ratio = char_img.shape[0] / char_img.shape[1]
-    print(f'ratio is {form_ratio}')
+
+    # print(f'ratio is {form_ratio}')
     char_form = -1
-    if(form_ratio <= 0.781):
+    if (form_ratio <= 0.781):
         char_form = 1
-    if(form_ratio >= 0.8 and form_ratio <= 1.1):
+    if (form_ratio >= 0.8 and form_ratio <= 1.1):
         char_form = 2
-    if(form_ratio > 1.1):
+    if (form_ratio > 1.2):
         char_form = 3
 
     h, w = char_img.shape
-    corvar = (char_img[0][0] / 255) * 1 + (char_img[0][w - 1] / 255) * 2 + (char_img[h - 1][w - 1] / 255) * 4 + (char_img[h - 1][0] / 255) * 8 # noqa
+    corvar = (char_img[0][0] / 255) * 1 + (char_img[0][w - 1] / 255) * 2 + (
+        char_img[h - 1][w - 1] / 255) * 4 + (char_img[h - 1][0] / 255) * 8  # noqa
 
     pospunc, expunc, numpunc = recognize_dots(img_dotted)
-    print(f'character is of form {char_form} and corner variance {corvar}')
-    print(f'pospunc is {pospunc} | expunc is {expunc} | numpunc is {numpunc}')
-    feature_vector = [char_form, corvar, expunc, pospunc, numpunc]
-    print(f'feature vector: {feature_vector}')
-    display_image('character', img_dotted)
+    # print(f'character is of form {char_form} and corner variance {corvar}')
+    # print(f'pospunc is {pospunc} | expunc is {expunc} | numpunc is {numpunc}')
+    feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc]
+    # display_image('character', img_dotted)
+    return feature_vector
 
 
 if __name__ == '__main__':
@@ -611,9 +595,39 @@ if __name__ == '__main__':
     # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs") # noqa
 
     args = vars(ap.parse_args())
-    print(args)
+    # print(args)
     input_path = args["input_path"]
-    recognize_char(input_path)
+    """
+    char_img = convert_to_binary(cv2.imread(input_path, 0))
+    char_img = (255 - char_img)
+    """
+    # print(f'img shape {char_img.shape}')
+    # feature_vector = recognize_char(char_img)
+    char_w = [9, 8, 14, 9, 9, 9, 9, 7, 9, 6, 8, 8]
+
+    line_img = convert_to_binary(cv2.imread('segmented_lines/segment_2.png', 0))
+
+    feat_vec = [[5, -1, 8.0, 1, 2, 1], [6, -1, 8.0, 0, -1, 0], [128, 2, 0.0, 1, 1, 1], [2, 2, 0.0, 1, 3, 1],
+                [18, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 2], [65, 3, 0.0, 1, 1, 2],
+                [65, 3, 4.0, 1, 1, 2], [65, -1, 8.0, 1, 3, 1], [4, -1, 8.0, 0, -1, 0], [4, -1, 0.0, 0, -1, 0]]
+
+    files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
+    for f in files:
+        image = cv2.imread(os.path.join(input_path, f))
+        processed_image = convert_to_binary_and_invert(image)
+        fv = recognize_char(processed_image)
+        feat_vec.append(fv)
+        char_w.append(processed_image.shape[1])
+
+    img = line_img
+    for i in range(0, len(feat_vec)):
+        spts = recognize_template(line_img, char_w[i], feat_vec[i])
+        w = char_w[i]
+
+        for s in spts:
+            cv2.line(img, (s, 0), (s, img.shape[0]), (255, 255, 255), 1)  # for debugging
+            cv2.line(img, (s + w, 0), (s + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
+    cv2.imwrite('./img.png', 255 - img)
     """
     line_segmets_path = args["line_segments_path"]
 
