@@ -39,6 +39,7 @@ def convert_to_binary_and_invert(image):
 def get_distance_between_words(distances):
     distances_soreted = sorted(distances, key=distances.count,reverse=True)
     distances_soreted = list(unique_everseen(distances_soreted))
+    print(distances_soreted)
     # distance = max(distances_soreted[:3])
     distance = sum(distances_soreted[:3]) // 3
     return distance
