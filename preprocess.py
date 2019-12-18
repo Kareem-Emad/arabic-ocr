@@ -250,7 +250,6 @@ def segment_character(image):
 
 
 def template_match(image, path):
-
     template = cv2.imread(path, cv2.COLOR_BGR2GRAY)
     template = convert_to_binary_and_invert(template)
 
@@ -324,10 +323,10 @@ def contour_seg(image, baseline_org):
 
         hp = get_horizontal_projection(img_cnt)
 
-        seen_points, template_width_seen = template_match(img_cnt, "patterns/seen_start.png")
+        seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png")
         print("seen points", seen_points)
 
-        kaf_points, template_width_kaf = template_match(img_cnt, "patterns/kaf.png")
+        kaf_points, template_width_kaf = template_match(img_cnt, "./patterns/kaf.png")
         print("kaf points", kaf_points)
 
         fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png")
@@ -459,7 +458,8 @@ def contour_seg(image, baseline_org):
         previous_width = 0  
         char_list = []
         segment_points = list(filter(lambda a: a != -1, segment_points))
-
+        if(segment_points == []):
+            return []
         for seg_point in segment_points:
             if i == 0:
                 previous_width = seg_point
@@ -470,13 +470,13 @@ def contour_seg(image, baseline_org):
             previous_width = seg_point
             cv2.line(final, (seg_point, 0), (seg_point, image.shape[0]), (255, 255, 255), 1)
             character_indecies.append(seg_point)
-    
-        character = original_image[:, seg_point:original_image.shape[1]]
+
+        character = original_image[:, segment_points[-1]:original_image.shape[1]]
         char_list.append(character)
        
         print("final",segment_points)
         display_image("final", final)
         cv2.imwrite("final.png",final)
-        return character_indecies
+    return character_indecies
         # return(seg_point)
         

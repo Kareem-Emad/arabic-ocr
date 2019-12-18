@@ -3,22 +3,21 @@ import argparse
 import cv2
 import os
 import shutil
-
+import json
 
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image, get_distance_between_words
 from preprocess import get_baseline_y_coord, get_horizontal_projection, get_largest_connected_component
 from preprocess import segment_character, get_pen_size, get_vertical_projection, deskew, find_max_transition,\
 get_cut_points, contour_seg
 from train_recognition import batch_get_feat_vectors
+from integrator import compare_and_assign, get_words_from_text, load_features_map, match_feat_to_char
 
-
-def get_words_from_text(image_name):
 
 
 def segment_lines(image, directory_name, write_to_file):
     (h, w) = image.shape[:2]
     original_image = image.copy()
-   
+ 
     image = cv2.bitwise_not(image)
     image = cv2.dilate(image, np.ones((3, 3), np.uint8), iterations=1)
     
@@ -72,7 +71,7 @@ def segment_lines(image, directory_name, write_to_file):
     # cv2.imwrite("segmented_lines.png", image)
     return line_images
 
-def segment_words(line_images, path):
+def segment_words(line_images, path, img_name, input_path, train=False):
     """
     this function keeps the list of word separatation points in word_separation list
     but segments into sub words and saves the sub words segements in their designated directory
@@ -80,7 +79,12 @@ def segment_words(line_images, path):
     # files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     # image = cv2.imread(os.path.join(path, files[1]))
     # print(os.path.join(path, files[1]))
-
+    gt_words = get_words_from_text(img_name, input_path)
+    if(train):
+        char_map = {}
+    else:
+        char_map = load_features_map()
+        recognized_chars = ''
     directory_name = "./segmented_words"
 
     if os.path.exists(directory_name):
@@ -88,7 +92,8 @@ def segment_words(line_images, path):
     os.makedirs(directory_name)
 
     line_image_number = 0
-
+    curr_word_idx = 0
+    wrong_seg_words = 0
     for image in line_images:
         line_character_segments = []
         line_image_number += 1
@@ -154,7 +159,6 @@ def segment_words(line_images, path):
         if distances[-1] > 2:
             word_separation[-1] = -1
 
-
         word_separation = list(filter(lambda a: a != -1, word_separation))
         print(word_separation)
         # import ipdb;ipdb.set_trace()
@@ -167,7 +171,7 @@ def segment_words(line_images, path):
             sub_word = original_image[:, previous_width:int(word_separation[i])]
             print("shape:::::", sub_word.shape)
             # sub_word = cv2.cvtColor(sub_word, cv2.COLOR_BGR2GRAY)
-            
+
             sub_word = convert_to_binary(sub_word)
 
             sub_word = cv2.bitwise_not(sub_word)
@@ -175,16 +179,31 @@ def segment_words(line_images, path):
 
             sub_copy = sub_word.copy()
             # cv2.line(sub_copy, (0, baseline_y_coord), (sub_copy.shape[0],baseline_y_coord), (255, 255, 255), 1)
-            
+
             display_image("sub_base", sub_copy)
             # import ipdb;ipdb.set_trace()
             seg_points = contour_seg(sub_copy, baseline_y_coord)
-            vector = batch_get_feat_vectors(sub_word, seg_points)
-            print(vector)
+            feat_vectors = batch_get_feat_vectors(sub_word, seg_points)
+            if(train):
+                aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
+                if(aux_map != -1):
+                    char_map = aux_map
+                else:
+                    wrong_seg_words += 1
+            else:
+                recognized_chars += match_feat_to_char(char_map, feat_vectors)
+            curr_word_idx += 1
             previous_width = int(word_separation[i])
         print("^^^^^^^^^^^^^^^^^end of function^^^^^^^^^^^^^^^^^^^^^^")
+    if(train):
+        with open('./config_map.json', 'w') as f:
+            f.write(json.dumps(char_map))
+            f.close()
+    else:
+        with open(f'./output/{img_name.replace("png", "txt")}', 'w') as f:
+            f.write(recognized_chars)
+            f.close()
 
-    
 
 if __name__ == '__main__':
 
@@ -221,4 +240,4 @@ if __name__ == '__main__':
         line_segmets_path = os.path.join(line_segmets_path, f[:-4])
      
         lines = segment_lines(processed_image, line_segmets_path, 0)
-        segment_words(lines, line_segmets_path, image_name)
+        segment_words(lines, line_segmets_path, f, input_path, False)

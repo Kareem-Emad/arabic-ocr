@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from  more_itertools import unique_everseen
 
+from os import environ
+
 
 
 def most_frequent(arr):
@@ -18,9 +20,10 @@ def most_frequent(arr):
     return most_freq
 
 def display_image(label, image):
-    cv2.imshow(label, image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if(environ.get('DEBUG_MODE')):
+        cv2.imshow(label, image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 def convert_to_binary(image):
