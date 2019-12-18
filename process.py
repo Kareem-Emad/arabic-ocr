@@ -2,13 +2,13 @@ import numpy as np
 import argparse
 import cv2
 import os
-import shutil
+#  import shutil
 from utils import convert_to_binary, display_image, convert_to_binary_and_invert
 from preprocess import get_base_line_y_coord, get_horizontal_projection, get_largest_connected_component
-from preprocess import get_pen_size, get_vertical_projection, remove_dots
+from preprocess import get_pen_size, get_vertical_projection, remove_dots, deskew
 
 
-def segment_lines(original_image, directory_name):
+def segment_lines(original_image, directory_name, imgname):
     (h, w) = original_image.shape[:2]
     image = original_image.copy()
 
@@ -37,10 +37,10 @@ def segment_lines(original_image, directory_name):
 
     previous_height = 0
 
-    if os.path.exists(directory_name):
-        shutil.rmtree(directory_name)
+    #  if os.path.exists(directory_name):
+    # shutil.rmtree(directory_name)
 
-    os.makedirs(directory_name)
+    # os.makedirs(directory_name)
 
     for i in range(len(ycoords)):
         if i == 0:
@@ -50,12 +50,12 @@ def segment_lines(original_image, directory_name):
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
 
         previous_height = int(ycoords[i])
-        cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
+        cv2.imwrite(directory_name + "/" + "segment_" + str(i) + '_' + imgname, image_cropped)
 
-    display_image("segmented lines", image)
+    # display_image("segmented lines", image)
 
     image_cropped = original_image[previous_height:h, :]
-    cv2.imwrite(directory_name + "/" + "segment_" + str(i + 1) + ".png", image_cropped)
+    cv2.imwrite(directory_name + "/" + "segment_" + str(i + 1) + '_' + imgname, image_cropped)
     # print(image.shape)
     return image
 
@@ -115,7 +115,7 @@ def segment_words_dilate(path):
 
     image_without_dotting = original_image  # cv2.bitwise_and(largest_connected_component, original_image)
 
-    display_image("image without dotting", image_without_dotting)
+    # display_image("image without dotting", image_without_dotting)
     vertical_projection = get_vertical_projection(image)
 
     # print("shape of vertical projections is: ", len(vertical_projection))
@@ -498,23 +498,27 @@ def recognize_dots(char_img):
 
 
 def recognize_template(img, w, feat_vec):
-    last_accepted_i = -w
+    last_accepted_i = - max(w)
+    last_w = min(w)
     start_pts = []
     # display_image('character segemnted image', img)
 
-    for i in range(0, img.shape[1] - w):
-        if (last_accepted_i + w > i):
+    for i in range(0, img.shape[1] - min(w)):
+        if (last_accepted_i + last_w > i):
             continue
-        subimage = img[:, i:i + w + 1]
-        try:
-            curr_feat_vec = recognize_char(subimage)
-            if (curr_feat_vec == feat_vec):
-                last_accepted_i = i
-                # cv2.line(img, (i, 0), (i, img.shape[0]), (255, 255, 255), 1)  # for debugging
-                # cv2.line(img, (i + w, 0), (i + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
-                start_pts.append(i)
-        except Exception as e:
-            print(e)
+        for j in range(0, len(feat_vec)):
+            curr_w = w[j]
+            verdict_feat_vec = feat_vec[j]
+            subimage = img[:, i:i + curr_w + 1]
+            try:
+                curr_feat_vec = recognize_char(subimage)
+                if (curr_feat_vec == verdict_feat_vec):
+                    last_accepted_i = i
+                    last_w = curr_w
+                    start_pts.append((i, curr_w))
+                    break
+            except Exception as e:
+                print(e)
     # display_image('character segemnted image', img)
     return start_pts
 
@@ -584,6 +588,60 @@ def recognize_char(char_img):
     return feature_vector
 
 
+def build_feat_vector():
+    char_w = [24, 13, 9, 8, 14, 9, 9, 9, 9, 7, 9, 6, 8, 8, 9, 12, 8, 7, 12, 6, 9, 13]
+
+    # display_image('', line_img)
+    feat_vec = [[192, 1, 0.0, 0, -1, 0], [64, 1, 12.0, 0, -1, 0], [5, -1, 8.0, 1, 2, 1],
+                [6, -1, 8.0, 0, -1, 0], [128, 2, 0.0, 1, 1, 1], [2, 2, 0.0, 1, 3, 1], [18, 3, 4.0, 1, 1, 1],
+                [2, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 2], [65, 3, 0.0, 1, 1, 2], [65, 3, 4.0, 1, 1, 2],
+                [65, -1, 8.0, 1, 3, 1], [4, -1, 8.0, 0, -1, 0], [4, -1, 0.0, 0, -1, 0], [8, 2, 12.0, 1, 1, 1],
+                [3, 1, 4.0, 1, 1, 1], [0, 2, 12.0, 1, 1, 2], [0, 3, 4.0, 1, 1, 3], [65, 3, 0.0, 1, 1, 3],
+                [0, -1, 12.0, 1, 1, 2], [85, 2, 12.0, 1, 1, 1], [264, 1, 12.0, 0, -1, 0]]
+    #  [0, 3, 5.0, 0, -1, 0], [0, 3, 13.0, 0, -1, 0], [4, 3, 11.0, 0, -1, 0]
+    """
+    files = [f for f in os.listdir('segmented_char') if os.path.isfile(os.path.join('segmented_char', f))]
+
+    for f in files:
+        image = cv2.imread(os.path.join('segmented_char', f))
+        processed_image = convert_to_binary_and_invert(image)
+        fv = recognize_char(processed_image)
+        feat_vec.append(fv)
+        char_w.append(processed_image.shape[1])
+    """
+    return feat_vec, char_w
+
+
+def process_line(line_img, line_name):
+
+    feat_vec, char_w = build_feat_vector()
+    img = np.zeros(line_img.shape)
+    for i in range(0, len(feat_vec)):
+        spts = recognize_template(line_img, char_w[i], feat_vec[i])
+        w = char_w[i]
+
+        for s in spts:
+            cv2.line(img, (s, 0), (s, img.shape[0]), (255, 255, 255), 1)  # for debugging
+            cv2.line(img, (s + w, 0), (s + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
+
+    img = 255 - img
+    img = np.sum(img, axis=0)
+    cv2.imwrite(f'labeled_lines/{f}', img)
+
+
+def process_line_in_place(line_img, line_name):
+
+    feat_vec, char_w = build_feat_vector()
+    img = line_img.copy()
+    spts = recognize_template(line_img, char_w, feat_vec)
+    for tup in spts:
+        s, w = tup
+        cv2.line(img, (s, 0), (s, img.shape[0]), (255, 255, 255), 1)  # for debugging
+        cv2.line(img, (s + w, 0), (s + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
+    img = 255 - img
+    return img
+
+
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
 
@@ -596,7 +654,7 @@ if __name__ == '__main__':
                     "--input-path",
                     required=False,
                     help="path to line segments file",
-                    default="./segmented_char/3een_start.png")
+                    default="./dataset/scanned")
 
     # ap.add_argument("-f", "--figs-path", required=False, help="path to line segments file", default="./figs") # noqa
 
@@ -607,37 +665,27 @@ if __name__ == '__main__':
     char_img = convert_to_binary(cv2.imread(input_path, 0))
     char_img = (255 - char_img)
     """
-    # print(f'img shape {char_img.shape}')
-    # feature_vector = recognize_char(char_img)
-    char_w = [24, 13, 9, 8, 14, 9, 9, 9, 9, 7, 9, 6, 8, 8, 9, 12, 8, 7, 12, 6, 9, 13]
-
-    line_img = convert_to_binary(cv2.imread('segmented_lines/segment_1.png', 0))
-    # display_image('', line_img)
-    feat_vec = [[192, 1, 0.0, 0, -1, 0], [64, 1, 12.0, 0, -1, 0], [5, -1, 8.0, 1, 2, 1], [6, -1, 8.0, 0, -1, 0],
-                [128, 2, 0.0, 1, 1, 1], [2, 2, 0.0, 1, 3, 1], [18, 3, 4.0, 1, 1, 1], [2, 3, 4.0, 1, 1, 1],
-                [2, 3, 4.0, 1, 1, 2], [65, 3, 0.0, 1, 1, 2], [65, 3, 4.0, 1, 1, 2], [65, -1, 8.0, 1, 3, 1],
-                [4, -1, 8.0, 0, -1, 0], [4, -1, 0.0, 0, -1, 0], [8, 2, 12.0, 1, 1, 1], [3, 1, 4.0, 1, 1, 1],
-                [0, 2, 12.0, 1, 1, 2], [0, 3, 4.0, 1, 1, 3], [65, 3, 0.0, 1, 1, 3], [0, -1, 12.0, 1, 1, 2],
-                [85, 2, 12.0, 1, 1, 1], [264, 1, 12.0, 0, -1, 0]]
-    #  [0, 3, 5.0, 0, -1, 0], [0, 3, 13.0, 0, -1, 0], [4, 3, 11.0, 0, -1, 0]
+    line_segmets_path = args["line_segments_path"]
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
     for f in files:
+
         image = cv2.imread(os.path.join(input_path, f))
         processed_image = convert_to_binary_and_invert(image)
-        fv = recognize_char(processed_image)
-        feat_vec.append(fv)
-        char_w.append(processed_image.shape[1])
+        processed_image = deskew(processed_image)
+        processed_image = convert_to_binary(processed_image)
 
-    img = line_img
-    for i in range(0, len(feat_vec)):
-        spts = recognize_template(line_img, char_w[i], feat_vec[i])
-        w = char_w[i]
+        segment_lines(processed_image, line_segmets_path, f)
 
-        for s in spts:
-            cv2.line(img, (s, 0), (s, img.shape[0]), (255, 255, 255), 1)  # for debugging
-            cv2.line(img, (s + w, 0), (s + w, img.shape[0]), (255, 255, 255), 1)  # for debugging
-    cv2.imwrite('./img.png', 255 - img)
+    files = [f for f in os.listdir(line_segmets_path) if os.path.isfile(os.path.join(line_segmets_path, f))]
+
+    for f in files:
+        image = cv2.imread(os.path.join(line_segmets_path, f), 0)
+        line_image = convert_to_binary(image)
+        process_line(line_image, f)
+
+    # print(f'img shape {char_img.shape}')
+    # feature_vector = recognize_char(char_img)
     """
     line_segmets_path = args["line_segments_path"]
 
