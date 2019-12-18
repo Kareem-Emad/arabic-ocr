@@ -324,16 +324,16 @@ def contour_seg(image, baseline_org):
 
         hp = get_horizontal_projection(img_cnt)
 
-        seen_points, template_width_seen = template_match(img_cnt, "seen_start.png")
+        seen_points, template_width_seen = template_match(img_cnt, "patterns/seen_start.png")
         print("seen points", seen_points)
 
-        kaf_points, template_width_kaf = template_match(img_cnt, "kaf.png")
+        kaf_points, template_width_kaf = template_match(img_cnt, "patterns/kaf.png")
         print("kaf points", kaf_points)
 
-        fa2_points, template_width_fa2 = template_match(img_cnt, "fa2.png")
+        fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png")
         print("fa2 points", fa2_points)
 
-        sad_points, template_width_sad = template_match(img_cnt, "sad.png")
+        sad_points, template_width_sad = template_match(img_cnt, "patterns/sad.png")
         print("sad points", sad_points)
     
         for point in seen_points:
