@@ -347,7 +347,7 @@ def batch_get_feat_vectors(word, idxes):
             feat_vectors.append(fv)
         except Exception as e:
             print(e)
-            feat_vectors.append([])
+            # feat_vectors.append([])
         last_idx = idx
     return feat_vectors
 
