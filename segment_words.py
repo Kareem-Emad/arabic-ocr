@@ -13,10 +13,10 @@ from integrator import compare_and_assign, get_words_from_text, load_features_ma
 
 
 def segment_lines(image, directory_name, write_to_file):
-    (h, w) = image.shape[:2]
+    (h, w) = image.shape
+    image = convert_to_binary(image)
     original_image = image.copy()
-
-    image = cv2.bitwise_not(image)
+    
     image = cv2.dilate(image, np.ones((3, 3), np.uint8), iterations=1)
 
     horizontal_projection = get_horizontal_projection(image)
@@ -56,10 +56,15 @@ def segment_lines(image, directory_name, write_to_file):
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
         line_images.append(image_cropped)
 
+        # line = image_cropped.copy()
+        # baseline = get_baseline_y_coord(get_horizontal_projection(line))
+        # cv2.line(line, (0, baseline), (w, baseline), (255, 255, 255), 1)
+        # display_image("base",line)
+    
         previous_height = int(ycoords[i])
         if write_to_file == 1:
             cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", image_cropped)
-    display_image("segmented lines", image_cropped)
+    # display_image("segmented lines", image_cropped)
 
     image_cropped = original_image[previous_height:h, :]
     line_images.append(image_cropped)
@@ -90,24 +95,18 @@ def segment_words(line_images, path, img_name, input_path, train=False):
         shutil.rmtree(directory_name)
     os.makedirs(directory_name)
 
-    line_image_number = 0
     curr_word_idx = 0
     wrong_seg_words = 0
     for image in line_images:
-        line_image_number += 1
-        print(len(line_images))
+
         original_image = image.copy()
-        image = cv2.bitwise_not(image)
+        image_with_line = image.copy()
         (h, w) = image.shape
 
-        org_image = image.copy()
-        display_image("sourrrr&&&&&&&", org_image)
-        # image_with_line = cv2.dilate(image, np.ones((2, 2), np.uint8), iterations=1)  # needs some tuning
         horizontal_projection = get_horizontal_projection(image)
         baseline_y_coord = get_baseline_y_coord(horizontal_projection)
-        # cv2.line(image_with_line, (0, baseline_y_coord), (w, baseline_y_coord), (255, 255, 255), 1)
+        cv2.line(image_with_line, (0, baseline_y_coord), (w, baseline_y_coord), (255, 255, 255), 1)
 
-        # display_image("image without dotting", image_without_dotting)
         vertical_projection = get_vertical_projection(image)
 
         print("shape of vertical projections is: ", len(vertical_projection))
@@ -134,52 +133,37 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                     x += i
                     count += 1
 
-        get_distance_between_words(distances)
-        display_image("line image", image)
         previous_width = 0
         word_separation = xcoords.copy()
         # word_separation = list(filter(lambda a: a != -1, word_separation))
 
-        for i in range(len(xcoords)):
-            if i == 0:
-                previous_width = int(xcoords[i])
-                continue
-
-            if word_separation[i] > 2:
+        for i in range(len(word_separation)):
+           
+            if distances[i] > 2:
                 pass
-                # cv2.line(image, (previous_width, 0), (previous_width, h), (255, 255, 255), 1)
             else:
-                word_separation[i - 1] = -1
-                # cv2.imwrite(directory_name + "/" + "segment_" + str(i) + ".png", sub_word)
-                # display_image("sub word", sub_word)
-            previous_width = int(xcoords[i])
-
-        if distances[-1] > 2:
-            word_separation[-1] = -1
-
+                word_separation[i] = -1
+        
         word_separation = list(filter(lambda a: a != -1, word_separation))
         print(word_separation)
-        # import ipdb;ipdb.set_trace()
-        seg_points = []
-        for i in range(len(word_separation)):
+
+        previous_width = 0
+        seg_point = []
+        for i in range(len(word_separation)+1):
             if i == 0:
                 previous_width = int(word_separation[0])
                 continue
 
-            sub_word = original_image[:, previous_width:int(word_separation[i])]
-            print("shape:::::", sub_word.shape)
-            # sub_word = cv2.cvtColor(sub_word, cv2.COLOR_BGR2GRAY)
-
-            sub_word = convert_to_binary(sub_word)
-
-            sub_word = cv2.bitwise_not(sub_word)
-            display_image("sub word", sub_word)
-            sub_copy = sub_word.copy()
-            #  cv2.line(sub_copy, (0, baseline_y_coord), (sub_copy.shape[0], baseline_y_coord), (255, 255, 255),1) # noqa
-            display_image("sub_base", sub_copy)
-            # import ipdb;ipdb.set_trace()
-            seg_points = contour_seg(sub_copy, baseline_y_coord)
-            feat_vectors = batch_get_feat_vectors(sub_word, seg_points)
+            if i != len(word_separation):
+                word = original_image[:, previous_width:int(word_separation[i])]
+                display_image("word", word)
+                cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]), (255, 255, 255),1)
+                previous_width = int(word_separation[i])
+            else:
+                word = original_image[:, int(word_separation[-1]):original_image.shape[1]]
+            
+            seg_points = contour_seg(word, baseline_y_coord)
+            feat_vectors = batch_get_feat_vectors(word, seg_points)
             if (train):
                 if(len(gt_words) > curr_word_idx):
                     aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
@@ -192,8 +176,8 @@ def segment_words(line_images, path, img_name, input_path, train=False):
             else:
                 recognized_chars += match_feat_to_char(char_map, feat_vectors)
             curr_word_idx += 1
-            previous_width = int(word_separation[i])
-        print("^^^^^^^^^^^^^^^^^end of function^^^^^^^^^^^^^^^^^^^^^^")
+        display_image("word sep",image)
+
     if (train):
         try:
             with open('./config_map.json', 'w') as f:
@@ -206,7 +190,8 @@ def segment_words(line_images, path, img_name, input_path, train=False):
             f.write(recognized_chars)
             f.close()
 
-
+        # import ipdb;ipdb.set_trace()
+    
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
@@ -235,11 +220,10 @@ if __name__ == '__main__':
         processed_image = convert_to_binary_and_invert(image)
         processed_image = deskew(processed_image)
 
-        processed_image = cv2.bitwise_not(processed_image)
         print(processed_image.shape)
         display_image("after deskew", processed_image)
         cv2.imwrite("binary.png", processed_image)
         line_segmets_path = os.path.join(line_segmets_path, f[:-4])
 
-        lines = segment_lines(processed_image, line_segmets_path, 0)
+        lines = segment_lines(processed_image, line_segmets_path, 1)
         segment_words(lines, line_segmets_path, f, input_path, True)
