@@ -249,9 +249,8 @@ def segment_character(image):
     display_image("char seg",image)
 
 
-def template_match(image_org, path):
+def template_match(image, path, threshold):
 
-    image = image_org.copy()
     template = cv2.imread(path, cv2.COLOR_BGR2GRAY)
     template = convert_to_binary_and_invert(template)
 
@@ -261,14 +260,15 @@ def template_match(image_org, path):
     img = image.copy()
     w, h = template.shape[::-1]
     res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED)
-    threshold = 0.75
     loc = np.where( res >= threshold)
+    print("template width", template.shape[1])
     i = 0
     previous_point = 0
     points = []
     for pt in zip(*loc[::-1]):
         if (len(points) > 0):
             if(pt[0] - points[-1] < template.shape[1]):
+                print("here")
                 continue
             
         cv2.line(img, (pt[0], 0), (pt[0], img.shape[0]), (255, 255, 255), 1)
@@ -276,14 +276,15 @@ def template_match(image_org, path):
 
         cv2.rectangle(img, pt, (pt[0] + w, pt[1] + h), (255,255,255), 2)
         points.append(pt[0])
+        display_image('res.png', img)
 
     return points, template.shape[1]
-
 
 def contour_seg(image, baseline_org):
 
     edged = image.copy()
     original_image = image.copy()
+    final = image.copy()
     character_indecies = []
 
     contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -321,6 +322,7 @@ def contour_seg(image, baseline_org):
         # image_blank = np.zeros((edged.shape[0], edged.shape[1], 3), np.uint8)
         image_blank = np.zeros(edged.shape, np.uint8)
         img = cv2.drawContours(image_blank, [cnt], 0, (255, 255, 255), 1) 
+        leftmost = tuple(cnt[cnt[:,:,0].argmin()][0])
 
         print("cnt shape", cnt.shape)
         img_cnt = np.zeros(edged.shape, np.uint8)
@@ -333,22 +335,37 @@ def contour_seg(image, baseline_org):
             x_points.append(point[0])
             img_cnt[point[1], point[0]] = image[point[1], point[0]]
             cv2.circle(img, point, 1, (255,0,0), -1)
+
+        baseline = most_frequent(np.asarray(y_points))
+        print("now baseline is: ", baseline)
     
-        seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png")
+        seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png", .8)
         print("seen points", seen_points)
 
-        kaf_points, template_width_kaf = template_match(img_cnt, "./patterns/kaf.png")
+        seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .75)
+        print("seen mid points", seen_mid_points)
+
+        seen_end_points, template_width_seen_end = template_match(img_cnt, "./patterns/seen_end.png", .8)
+        print("seen end points", seen_end_points)
+
+        kaf_points, template_width_kaf = template_match(img_cnt, "./patterns/kaf.png", .75)
         print("kaf points", kaf_points)
 
-        fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png")
+        fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png", .75)
         print("fa2 points", fa2_points)
 
-        sad_points, template_width_sad = template_match(img_cnt, "patterns/sad.png")
+        sad_points, template_width_sad = template_match(img_cnt, "patterns/sad.png", .75)
         print("sad points", sad_points)
 
         for point in seen_points:
             img_cnt[:, point:point+ template_width_seen] = 255
 
+        for point in seen_mid_points:
+            img_cnt[:, point+8:point+ template_width_seen_mid] = 255
+
+        for point in seen_end_points:
+            img_cnt[:, point:point+ template_width_seen_end] = 255
+           
         for point in kaf_points:
             img_cnt[:, point:point+ template_width_kaf] = 255
 
@@ -359,11 +376,7 @@ def contour_seg(image, baseline_org):
             img_cnt[:, point:point+ template_width_fa2] = 255
 
         cv2.imwrite("img_cnt_word.png", img_cnt)
-        # display_image("contour", img_cnt)
-
-
-        baseline = most_frequent(np.asarray(y_points))
-        print("now baseline is: ", baseline)
+        display_image("contour", img_cnt)
 
         count = 0
         flag = False
@@ -391,7 +404,6 @@ def contour_seg(image, baseline_org):
 
         sub_x = []
         j = 0
-        final = img_cnt.copy()
         segment_points = []
 
         baseline_local = baseline
@@ -410,9 +422,9 @@ def contour_seg(image, baseline_org):
             canidatate_points = []
             print(type(img_cnt[0,0]))
             for k in range(len(sub_x)):
-                sub_above = image[:baseline_local -1, sub_x[k]]
+                sub_above = img_cnt[:baseline_local -1, sub_x[k]]
                 # sub_above = img_cnt[:baseline_local -2: sub_x[k]]
-                sub_below = image[baseline_local+1:, sub_x[k]]
+                sub_below = img_cnt[baseline_local+1:, sub_x[k]]
                 # print("sub_above: ", sub_above)
                 # print("sub_below:, ", sub_below)
                 #need to add some threshold to eliminate too close seg points
@@ -471,27 +483,26 @@ def contour_seg(image, baseline_org):
             print("this is a dal at the end")
 
         # if len(segment_points) > 0:
-        #     if(255 in image[:baseline-1 , segment_points[0]]):
+        #     if(255 in image[baseline_org-1:baseline_org+2 , segment_points[0]]):
         #         print("this is a ta2 or kaf at the end")
         #         segment_points[0] = -1
         
-        
-        previous_width = 0  
-        char_list = []
         segment_points = list(filter(lambda a: a != -1, segment_points))
         if(segment_points == []):
             break
 
         character_indecies.extend(segment_points)
+        character_indecies.append(leftmost[0])
+
         print("seg points final", segment_points)
     
 
     character_indecies.extend(xcoords)
-    final = image.copy()
     for i in range(len(character_indecies)):        
         cv2.line(final, (int(character_indecies[i]), 0), (int(character_indecies[i]), final.shape[0]), (255, 255, 255), 1)  # for debugging
 
     display_image("final", final)
+    cv2.imwrite("wf.png", final)
     
     return character_indecies.sort()
         

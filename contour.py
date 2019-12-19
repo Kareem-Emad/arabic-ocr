@@ -19,10 +19,13 @@ def template_match(image, path):
     template = cv2.imread(path, cv2.COLOR_BGR2GRAY)
     template = convert_to_binary_and_invert(template)
 
+    if (image.shape[0] < template.shape[0] or image.shape[1] < template.shape[1]):
+        return [], 0
+
     img = image.copy()
     w, h = template.shape[::-1]
     res = cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED)
-    threshold = 0.6
+    threshold = 0.65
     loc = np.where( res >= threshold)
     print("template width", template.shape[1])
     i = 0
@@ -66,7 +69,7 @@ if __name__ == '__main__':
     input_path = args["input_path"]
     line_segmets_path = args["line_segments_path"]
 
-    image = cv2.imread("./segmented_lines/csep1622/segment_1/segment_31.png", cv2.COLOR_BGR2GRAY)
+    image = cv2.imread("segmented_lines/capr153/segment_1/segment_2.png", cv2.COLOR_BGR2GRAY)
     display_image("source", image)
     
 
@@ -74,33 +77,48 @@ if __name__ == '__main__':
     cv2.imwrite("binary.png", processed_image)
 
     img_line = processed_image.copy()
-
     edged = processed_image
+    vertical_projection = get_vertical_projection(image)
 
-    seen_points, template_width_seen = template_match(image, "seen_start.png")
-    print("seen points", seen_points)
+    x, count = 0, 0
+    is_space = False
+    xcoords = []
+    distances = []
 
-    kaf_points, template_width_kaf = template_match(image, "kaf.png")
-    print("kaf points", kaf_points)
+    for i in range(img_line.shape[1]):
+        if not is_space:
+            if vertical_projection[i] == 0:
+                is_space = True
+                count = 1
+                x = i
 
-    fa2_points, template_width_fa2 = template_match(image, "fa2.png")
-    print("fa2 points", fa2_points)
+        else:
+            if vertical_projection[i] > 0:
+                is_space = False
+                xcoords.append(x / count)
+                distances.append(count)
 
-    sad_points, template_width_sad = template_match(image, "sad.png")
-    print("sad points", sad_points)
+            else:
+                x += i
+                count += 1
 
-
+    previous_width = 0
     contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
+    # for cnt in contours:
+    #     print("cnt area: ", cv2.contourArea(cnt))
+    # exit()
     for cnt in contours:
-        if(cv2.contourArea(cnt) < 4):
+        if(cv2.contourArea(cnt) < 1):
+            print("too small", cv2.contourArea(cnt))
             break
 
         image_blank = np.zeros(edged.shape, np.uint8)
         img = cv2.drawContours(image_blank, [cnt], 0, (255, 255, 255), 1) 
 
         leftmost = tuple(cnt[cnt[:,:,0].argmin()][0])
+        print("left most", leftmost)
         rightmost = tuple(cnt[cnt[:,:,0].argmax()][0])
         topmost = tuple(cnt[cnt[:,:,1].argmin()][0])
         bottommost = tuple(cnt[cnt[:,:,1].argmax()][0])   
@@ -118,8 +136,6 @@ if __name__ == '__main__':
         index_top = np.where((cnt == topmost).all(axis=2))
         index_bottom = np.where((cnt == bottommost).all(axis=2))
 
-        print("left: ", index_left[0][0])
-        print("right: ", index_right[0][0])
         print("cnt shape", cnt.shape)
         
         # right il 2a5r
@@ -133,9 +149,27 @@ if __name__ == '__main__':
         for i in range(0, cnt.shape[0]):
             point = (cnt[i][0][0], cnt[i][0][1])
             y_points.append(point[1])
-            cv2.circle(img, point, 1, (255,0,0), -1)
             x_points.append(point[0])
+            cv2.circle(img, point, 1, (255,0,0), -1)
             img_cnt[point[1], point[0]] = image[point[1], point[0]]
+
+
+        seen_points, template_width_seen = template_match(img_cnt, "seen_start.png")
+        print("seen points", seen_points)
+
+        seen_mid_points, template_width_seen = template_match(img_cnt, "seen_mid.png")
+        print("seen mid points", seen_mid_points)
+
+
+        kaf_points, template_width_kaf = template_match(img_cnt, "kaf.png")
+        print("kaf points", kaf_points)
+
+        fa2_points, template_width_fa2 = template_match(img_cnt, "fa2.png")
+        print("fa2 points", fa2_points)
+
+        sad_points, template_width_sad = template_match(img_cnt, "sad.png")
+        print("sad points", sad_points)
+
 
         for point in seen_points:
             img_cnt[:, point:point+ template_width_seen] = 255
@@ -148,28 +182,20 @@ if __name__ == '__main__':
         for point in fa2_points:
             img_cnt[:, point:point+ template_width_fa2] = 255
 
+        for point in sad_points:
+            img_cnt[:, point:point+ template_width_fa2] = 255
         # img_cnt = cv2.morphologyEx(img_cnt, cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))
         cv2.imwrite("img_cnt.png", img_cnt)
 
         hp = get_horizontal_projection(img_cnt)
         baseline_org = get_baseline_y_coord(get_horizontal_projection(processed_image))
-
-        print("original baseline: ", baseline_org)
         
-        baseline = get_baseline_y_coord(hp)
+        # baseline = get_baseline_y_coord(hp)
         baseline = most_frequent(np.asarray(y_points))
         print("now baseline is: ", baseline)
         h , w = processed_image.shape
         cv2.line(img_line, (0, baseline), (w, baseline), (255, 255, 255), 1)
         cv2.imwrite("baseline.png", img_line)
-
-        pen_size = get_pen_size(img_cnt)
-        print("pen_size", pen_size)
-
-        
-        min_y = min(y_points)
-        print("y_min: ", min_y)
-        print("y_points:", y_points)
 
         count = 0
         flag = False
@@ -187,7 +213,6 @@ if __name__ == '__main__':
                         if count > 2:
                             length_consective.append(count)
                             point_positions.append(i)
-                            print("count: ", count)
 
                     else:
                         count += 1
@@ -195,30 +220,30 @@ if __name__ == '__main__':
         print("length_consective: ", length_consective)
         print("point_positions: ", point_positions)
         # print(list(y_points[x] for x in point_positions))
-        print("x_points: ", x_points)
-        print("y_points: ", y_points)
         sub_x = []
         j = 0
 
         final = img_cnt.copy()
         segment_points = []
+       
         for i in point_positions:
             sub_x = x_points[i-length_consective[j] : i]
+            print("sub_x", sub_x)
             j += 1
-            print("sub x:", sub_x)
-
             # for k in range(len(sub_x)-1 , -1, -1):
             canidatate_points = []
+            print(type(img_cnt[0,0]))
             for k in range(len(sub_x)):
                 sub_above = img_cnt[:baseline, sub_x[k]]
-                # sub_below = img_cnt[baseline + 2:, sub_x[k]]
+                sub_below = img_cnt[baseline + 1:, sub_x[k]]
                 # print("sub_above: ", sub_above)
                 # print("sub_below:, ", sub_below)
                 #need to add some threshold to eliminate too close seg points
-                if 255 not in sub_above:
+                if 255 not in sub_above and 255 not in sub_below:
                     # cv2.line(final, (sub_x[k], 0), (sub_x[k], image.shape[0]), (255, 255, 255), 1)
                     # segment_points.append(sub_x[k])
                     print("there is a point")
+                    print("sub below: ", sub_below)
                     canidatate_points.append(sub_x[k])
             
             if len(canidatate_points) > 0:
@@ -228,7 +253,7 @@ if __name__ == '__main__':
             
         if len(segment_points) < 1:
             print("&&&&&&&&& no seg points")
-            exit()
+            continue
         delete_point = False
         segment_points.sort()
         print("segment points: ", segment_points)
@@ -270,7 +295,9 @@ if __name__ == '__main__':
 
         for seg_point in segment_points:
             if seg_point != -1:
+                print("******************")
                 cv2.line(image, (seg_point, 0), (seg_point, image.shape[0]), (255, 255, 255), 1)
                 
+        print("segment_points",segment_points)
         display_image("final", image)
-        cv2.imwrite("final.png", final)
+        cv2.imwrite("final.png", image)
