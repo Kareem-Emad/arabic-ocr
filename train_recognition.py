@@ -300,20 +300,16 @@ def recognize_char(char_img):
         if (label == 'D_CONIC'):
             score += 4**4
 
-    # print(horz_transitions)
-    # print(ver_transitions)
-    # print(interest_pts)
-    # print(labeled_pts)
-    # print(f'character score is {score}')
     if (char_img.shape[1] == 0 or char_img.shape[0] == 0):
         return []
     char_img = eliminate_extra_padding(img_dotted)
+    if(char_img.shape[0] * char_img.shape[1] < 2):
+        return []
     try:
         form_ratio = char_img.shape[0] / char_img.shape[1]
     except Exception:
         return []
 
-    # print(f'ratio is {form_ratio}')
     char_form = -1
     if (form_ratio <= 0.781):
         char_form = 1
@@ -330,10 +326,8 @@ def recognize_char(char_img):
         return []
 
     pospunc, expunc, numpunc = recognize_dots(img_dotted)
-    # print(f'character is of form {char_form} and corner variance {corvar}')
-    # print(f'pospunc is {pospunc} | expunc is {expunc} | numpunc is {numpunc}')
+
     feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc]
-    # display_image('character', img_dotted)
     return feature_vector
 
 
@@ -346,7 +340,8 @@ def batch_get_feat_vectors(word, idxes):
         last_idx = int(last_idx)
         try:
             fv = recognize_char(word[:, last_idx:idx])
-            feat_vectors.append(fv)
+            if(fv != []):
+                feat_vectors.append(fv)
         except Exception as e:
             print(e)
             # feat_vectors.append([])

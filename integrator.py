@@ -26,6 +26,7 @@ def count_feat_vecs(feat_vecs):
 def compare_and_assign(feat_vects, word_str, char_map):
     if(len(word_str) != count_feat_vecs(feat_vects)):
         return -1
+    feat_vects.reverse()
     for i in range(0, len(word_str)):
         curr_char = word_str[i]
         if(not char_map.get(curr_char)):
