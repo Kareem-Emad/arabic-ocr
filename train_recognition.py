@@ -342,6 +342,8 @@ def batch_get_feat_vectors(word, idxes):
     feat_vectors = []
     last_idx = 0
     for idx in idxes:
+        idx = int(idx)
+        last_idx = int(last_idx)
         try:
             fv = recognize_char(word[:, last_idx:idx])
             feat_vectors.append(fv)
@@ -350,11 +352,3 @@ def batch_get_feat_vectors(word, idxes):
             # feat_vectors.append([])
         last_idx = idx
     return feat_vectors
-
-
-if __name__ == '__main__':
-    img = cv2.imread('word.png')
-    img = convert_to_binary_and_invert(img)
-    display_image('', img)
-    idxes = [17, 25, 33]
-    print(batch_get_feat_vectors(img, idxes))

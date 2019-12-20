@@ -8,7 +8,7 @@ def get_words_from_text(img_name, input_path):
         while(lines.find('  ') != -1):
             lines = lines.replace('  ', ' ')
         lines = lines.replace('\n', '')
-        lines = lines.replace('ال', 'L').split(' ')
+        lines = lines.replace('لا', 'L').split(' ')
         while '' in lines:
             lines.remove('')
         words = lines

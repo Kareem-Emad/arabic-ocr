@@ -138,30 +138,24 @@ def segment_words(line_images, path, img_name, input_path, train=False):
         # word_separation = list(filter(lambda a: a != -1, word_separation))
 
         for i in range(len(word_separation)):
-           
+    
             if distances[i] > 2:
                 pass
             else:
                 word_separation[i] = -1
-        
+ 
         word_separation = list(filter(lambda a: a != -1, word_separation))
         print(word_separation)
 
-        previous_width = 0
+        previous_width = image.shape[1]
         seg_point = []
-        for i in range(len(word_separation)+1):
-            if i == 0:
-                previous_width = int(word_separation[0])
-                continue
+        for i in range(len(word_separation)):
+            i = len(word_separation) - i - 1
 
-            if i != len(word_separation):
-                word = original_image[:, previous_width:int(word_separation[i])]
-                display_image("word", word)
-                cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]), (255, 255, 255),1)
-                previous_width = int(word_separation[i])
-            else:
-                word = original_image[:, int(word_separation[-1]):original_image.shape[1]]
-            
+            word = original_image[:, int(word_separation[i]):previous_width]
+            display_image("word", word)
+            cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]), (255, 255, 255),1)
+            previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
             feat_vectors = batch_get_feat_vectors(word, seg_points)
             if (train):
