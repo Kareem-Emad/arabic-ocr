@@ -171,7 +171,6 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 recognized_chars += match_feat_to_char(char_map, feat_vectors)
             curr_word_idx += 1
         display_image("word sep",image)
-    import ipdb; ipdb.set_trace()
     if (train):
         try:
             with open('./config_map.json', 'w') as f:
@@ -179,6 +178,7 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 f.close()
         except Exception:
             print(char_map)
+            return wrong_seg_words, curr_word_idx - 1
 
 
 if __name__ == '__main__':
@@ -202,6 +202,8 @@ if __name__ == '__main__':
     line_segmets_path = args["line_segments_path"]
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
+    wrong_words = 0
+    total_words = 0
     for f in files:
 
         image = cv2.imread(os.path.join(input_path, f))
@@ -215,4 +217,7 @@ if __name__ == '__main__':
         line_segmets_path = os.path.join(line_segmets_path, f[:-4])
 
         lines = segment_lines(processed_image, line_segmets_path, 1)
-        segment_words(lines, line_segmets_path, f, input_path, True)
+        curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, True)
+        wrong_words += curr_ww
+        total_words += curr_tw
+    print(f'we got {wrong_words} wrong out of {total_words}')
