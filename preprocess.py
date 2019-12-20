@@ -496,8 +496,6 @@ def contour_seg(image, baseline_org):
         #         segment_points[0] = -1
         
         segment_points = list(filter(lambda a: a != -1, segment_points))
-        if(segment_points == []):
-            break
 
         character_indecies.extend(segment_points)
 
@@ -510,6 +508,6 @@ def contour_seg(image, baseline_org):
 
     display_image("final", final)
     cv2.imwrite("wf.png", final)
-    
-    return character_indecies.sort()
+    character_indecies.sort()
+    return character_indecies
         

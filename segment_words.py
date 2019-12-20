@@ -83,12 +83,12 @@ def segment_words(line_images, path, img_name, input_path, train=False):
     # files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     # image = cv2.imread(os.path.join(path, files[1]))
     # print(os.path.join(path, files[1]))
-    # gt_words = get_words_from_text(img_name, input_path)
-    # if (train):
-    #     char_map = {}
-    # else:
-    #     char_map = load_features_map()
-    #     recognized_chars = ''
+    gt_words = get_words_from_text(img_name, input_path)
+    if (train):
+        char_map = {}
+    else:
+        char_map = load_features_map()
+        recognized_chars = ''
     directory_name = "./segmented_words"
 
     if os.path.exists(directory_name):
@@ -163,35 +163,30 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 word = original_image[:, int(word_separation[-1]):original_image.shape[1]]
             
             seg_points = contour_seg(word, baseline_y_coord)
-            # feat_vectors = batch_get_feat_vectors(word, seg_points)
-            # if (train):
-            #     if(len(gt_words) > curr_word_idx):
-            #         aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
-            #         if (aux_map != -1):
-            #             char_map = aux_map
-            #         else:
-            #             wrong_seg_words += 1
-            #     else:
-            #         wrong_seg_words += 1
-            # else:
-            #     recognized_chars += match_feat_to_char(char_map, feat_vectors)
-            # curr_word_idx += 1
+            feat_vectors = batch_get_feat_vectors(word, seg_points)
+            if (train):
+                if(len(gt_words) > curr_word_idx):
+                    aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
+                    if (aux_map != -1):
+                        char_map = aux_map
+                    else:
+                        wrong_seg_words += 1
+                else:
+                    wrong_seg_words += 1
+            else:
+                recognized_chars += match_feat_to_char(char_map, feat_vectors)
+            curr_word_idx += 1
         display_image("word sep",image)
+    import ipdb; ipdb.set_trace()
+    if (train):
+        try:
+            with open('./config_map.json', 'w') as f:
+                f.write(json.dumps(char_map))
+                f.close()
+        except Exception:
+            print(char_map)
 
-    # if (train):
-    #     try:
-    #         with open('./config_map.json', 'w') as f:
-    #             f.write(json.dumps(char_map))
-    #             f.close()
-    #     except Exception:
-    #         print(char_map)
-    # else:
-    #     with open(f'./output/{img_name.replace("png", "txt")}', 'w') as f:
-    #         f.write(recognized_chars)
-    #         f.close()
 
-        # import ipdb;ipdb.set_trace()
-    
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
