@@ -56,36 +56,48 @@ def should_have_no_score(fv):
     return fv[0] == 0
 
 
+def should_be_dotted_bottom(fv):
+    return fv[4] == 3
+
+
+def should_be_dotted_top(fv):
+    return fv[4] == 1
+
+
+def should_be_dotted_middle(fv):
+    return fv[4] == 2
+
+
 validation_map = {
     'ا': [should_have_no_dots, should_have_no_score],
-    'ب': [should_have_one_dot],
-    'ت': [should_have_dots],
-    'ث': [should_have_dots],
-    'ج': [should_have_one_dot],
+    'ب': [should_have_one_dot, should_be_dotted_bottom],
+    'ت': [should_have_dots, should_be_dotted_top],
+    'ث': [should_have_dots, should_be_dotted_top],
+    'ج': [should_have_one_dot, should_be_dotted_middle],
     'ح': [should_have_no_dots],
-    'خ': [should_have_one_dot],
+    'خ': [should_have_one_dot, should_be_dotted_top],
     'د': [should_have_no_dots],
-    'ذ': [should_have_one_dot],
+    'ذ': [should_have_one_dot, should_be_dotted_top],
     'ر': [should_have_no_dots],
-    'ز': [should_have_one_dot],
+    'ز': [should_have_one_dot, should_be_dotted_top],
     'س': [should_have_no_dots, should_have_score],
-    'ش': [should_have_score, should_have_dots],
+    'ش': [should_have_score, should_have_dots, should_be_dotted_top],
     'ص': [should_have_no_dots, should_have_score],
-    'ض': [should_have_one_dot, should_have_score],
+    'ض': [should_have_one_dot, should_have_score, should_be_dotted_top],
     'ط': [should_have_no_dots, should_have_score],
-    'ظ': [should_have_one_dot, should_have_score],
+    'ظ': [should_have_one_dot, should_have_score, should_be_dotted_top],
     'ع': [should_have_no_dots],
-    'غ': [should_have_one_dot],
-    'ف': [should_have_one_dot],
-    'ق': [should_have_dots],
-    'ك': [should_have_dots],
+    'غ': [should_have_one_dot, should_be_dotted_top],
+    'ف': [should_have_one_dot, should_be_dotted_top],
+    'ق': [should_have_dots, should_be_dotted_top],
+    'ك': [should_have_dots, should_be_dotted_middle],
     'ل': [should_have_no_dots],
     'م': [should_have_no_dots],
-    'ن': [should_have_one_dot],
+    'ن': [should_have_one_dot, should_be_dotted_top],
     'ه': [should_have_no_dots, should_have_score],
     'و': [should_have_no_dots],
     'ى': [],
-    'ي': [should_have_dots],
+    'ي': [should_have_dots, should_be_dotted_bottom],
     'L': [should_have_no_dots],
     'x': [should_have_no_dots, should_have_score]
 }
