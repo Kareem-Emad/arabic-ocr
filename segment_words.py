@@ -135,12 +135,12 @@ def segment_words(line_images, path, img_name, input_path, train=False):
         # word_separation = list(filter(lambda a: a != -1, word_separation))
 
         for i in range(len(word_separation)):
-    
+
             if distances[i] > 2:
                 pass
             else:
                 word_separation[i] = -1
- 
+
         word_separation = list(filter(lambda a: a != -1, word_separation))
         print(word_separation)
 
@@ -155,7 +155,7 @@ def segment_words(line_images, path, img_name, input_path, train=False):
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
             # import ipdb; ipdb.set_trace()
-            feat_vectors = batch_get_feat_vectors(word, seg_points)
+            feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
             if (train):
                 if(len(gt_words) > curr_word_idx):
                     aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
@@ -169,12 +169,15 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 # import ipdb; ipdb.set_trace()
                 recognized_chars += ' ' + match_feat_to_char(char_map, feat_vectors)
             curr_word_idx += 1
-        display_image("word sep",image)
+        display_image("word sep", image)
+    
     if (train):
         try:
             with open('./config_map.json', 'w') as f:
-                f.write(json.dumps(char_map))
+                f.write(json.dumps(char_map, ensure_ascii = False))
                 f.close()
+                print(char_map)
+                return wrong_seg_words, curr_word_idx - 1
         except Exception:
             print(char_map)
             return wrong_seg_words, curr_word_idx - 1
@@ -194,12 +197,9 @@ def process_image(line_segmets_path, input_path, f):
     cv2.imwrite("binary.png", processed_image)
     line_segmets_path = os.path.join(line_segmets_path, f[:-4])
 
-    try:
-        lines = segment_lines(processed_image, line_segmets_path, 0)
-        curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, False)
-        print(f'we got {curr_ww} wrong out of {curr_tw}')
-    except Exception:
-        import ipdb; ipdb.set_trace()
+    lines = segment_lines(processed_image, line_segmets_path, 0)
+    curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, True)
+    print(f'we got {curr_ww} wrong out of {curr_tw}')
 
 
 if __name__ == '__main__':

@@ -1,4 +1,3 @@
-
 import numpy as np
 import cv2
 from utils import display_image, convert_to_binary_and_invert
@@ -303,7 +302,7 @@ def recognize_char(char_img):
     if (char_img.shape[1] == 0 or char_img.shape[0] == 0):
         return []
     char_img = eliminate_extra_padding(img_dotted)
-    if(char_img.shape[0] * char_img.shape[1] < 2):
+    if (char_img.shape[0] * char_img.shape[1] < 2):
         return []
     try:
         form_ratio = char_img.shape[0] / char_img.shape[1]
@@ -331,7 +330,7 @@ def recognize_char(char_img):
     return feature_vector
 
 
-def batch_get_feat_vectors(word, idxes):
+def batch_get_feat_vectors(word, idxes, text_word):
     idxes.append(word.shape[1] - 1)
     feat_vectors = []
     last_idx = 0
@@ -340,7 +339,7 @@ def batch_get_feat_vectors(word, idxes):
         last_idx = int(last_idx)
         try:
             fv = recognize_char(word[:, last_idx:idx])
-            if(fv != []):
+            if (fv != []):
                 feat_vectors.append(fv)
         except Exception as e:
             print(e)

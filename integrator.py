@@ -23,12 +23,76 @@ def count_feat_vecs(feat_vecs):
     return c
 
 
+def should_have_one_dot(fv):
+    return fv[5] == 1
+
+
+def should_have_dots(fv):
+    return fv[5] > 0
+
+
+def should_have_no_dots(fv):
+    return fv[5] == 0
+
+
+def should_have_score(fv):
+    return fv[0] == 0
+
+
+def should_have_no_score(fv):
+    return fv[0] != 0
+
+
+validation_map = {
+    'ا': [should_have_no_dots, should_have_no_score],
+    'ب': [should_have_one_dot],
+    'ت': [should_have_dots],
+    'ث': [should_have_dots],
+    'ج': [should_have_one_dot],
+    'ح': [should_have_no_dots],
+    'خ': [should_have_one_dot],
+    'د': [should_have_no_dots],
+    'ذ': [should_have_one_dot],
+    'ر': [should_have_no_dots],
+    'ز': [should_have_one_dot],
+    'س': [should_have_no_dots, should_have_score],
+    'ش': [should_have_score, should_have_dots],
+    'ص': [should_have_no_dots, should_have_score],
+    'ض': [should_have_one_dot, should_have_score],
+    'ط': [should_have_no_dots, should_have_score],
+    'ظ': [should_have_one_dot, should_have_score],
+    'ع': [should_have_no_dots],
+    'غ': [should_have_one_dot],
+    'ف': [should_have_one_dot],
+    'ق': [should_have_dots],
+    'ك': [should_have_dots],
+    'ل': [should_have_no_dots],
+    'م': [should_have_no_dots],
+    'ن': [should_have_one_dot],
+    'ه': [should_have_no_dots, should_have_score],
+    'و': [should_have_no_dots],
+    'ى': [],
+    'ي': [should_have_dots],
+    'L': [should_have_no_dots]
+}
+
+
 def compare_and_assign(feat_vects, word_str, char_map):
     if(len(word_str) != count_feat_vecs(feat_vects)):
         return -1
     feat_vects.reverse()
     for i in range(0, len(word_str)):
         curr_char = word_str[i]
+        char_validations = validation_map[curr_char]
+        not_valid = False
+        for validation in char_validations:
+            if(not validation(feat_vects[i])):
+                not_valid = True
+                break
+
+        if(not_valid is True):
+            continue
+
         if(not char_map.get(curr_char)):
             char_map[word_str[i]] = []
 
