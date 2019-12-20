@@ -44,6 +44,7 @@ def load_features_map():
 
 
 def match_feat_to_char(feat_map, feat_vecs):
+    feat_vecs.reverse()
     word_str = ''
     for fv in feat_vecs:
         for char, feats in feat_map.items():
