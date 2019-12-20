@@ -268,7 +268,6 @@ def template_match(image, path, threshold):
     for pt in zip(*loc[::-1]):
         if (len(points) > 0):
             if(pt[0] - points[-1] < template.shape[1]):
-                print("here")
                 continue
             
         cv2.line(img, (pt[0], 0), (pt[0], img.shape[0]), (255, 255, 255), 1)
@@ -343,23 +342,33 @@ def contour_seg(image, baseline_org):
         seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png", .7)
         print("seen points", seen_points)
 
-        seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .85)
+        seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .8)
         print("seen mid points", seen_mid_points)
 
-        seen_end_points, template_width_seen_end = template_match(img_cnt, "./patterns/seen_end.png", .8)
+        seen_end_points, template_width_seen_end = template_match(img_cnt, "./patterns/seen_end.png", .75)
         print("seen end points", seen_end_points)
 
-        kaf_points, template_width_kaf = template_match(img_cnt, "./patterns/kaf.png", .75)
+        kaf_points, template_width_kaf = template_match(img_cnt, "./patterns/kaf.png", .7)
         print("kaf points", kaf_points)
+
+        kaf_end_points, template_width_kaf_end = template_match(img_cnt, "./patterns/kaf_end.png", .65)
+        print("kaf end points", kaf_end_points)
 
         fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png", .75)
         print("fa2 points", fa2_points)
 
-        sad_points, template_width_sad = template_match(img_cnt, "patterns/sad.png", .75)
+        sad_points, template_width_sad = template_match(img_cnt, "./patterns/sad.png", .75)
         print("sad points", sad_points)
 
-        ba2_points, template_width_ba2 = template_match(img_cnt, "patterns/ba2_end.png", .75)
-        print("sad points", ba2_points)
+        ba2_points, template_width_ba2 = template_match(img_cnt, "./patterns/ba2.png", .7)
+        print("ba2 points", ba2_points)
+
+        ba2_end_points, template_width_ba2_end = template_match(img_cnt, "./patterns/ba2_end.png", .65)
+        print("ba2 end points", ba2_end_points)
+
+        ya2_end_points, template_width_ya2_end = template_match(img_cnt, "./patterns/ya2_end.png", .75)
+        print("ya2 end points", ya2_end_points)
+
 
 
         for point in seen_points:
@@ -378,13 +387,29 @@ def contour_seg(image, baseline_org):
             img_cnt[:, point:point+ template_width_fa2] = 255
 
         for point in sad_points:
-            img_cnt[:, point:point+ template_width_fa2] = 255
+            img_cnt[:, point:point+ template_width_sad] = 255
 
         for point in ba2_points:
-            img_cnt[:, point:point+ template_width_fa2] = 255
+            img_cnt[:, point:point+ template_width_ba2] = 255
 
-        cv2.imwrite("img_cnt_word.png", img_cnt)
-        display_image("contour", img_cnt)
+        for point in ba2_end_points:
+            img_cnt[:, point:point+ template_width_ba2_end] = 255
+
+        for point in kaf_end_points:
+            img_cnt[:, point:point+ template_width_kaf_end] = 255
+    
+        for point in ya2_end_points:
+            # img_cnt[:, point:point+ template_width_ya2_end] = 255
+            character_indecies.append(point + template_width_ya2_end)
+    
+
+        img_cnt_copy = img_cnt.copy()
+        cv2.line(img_cnt_copy, (0, baseline), (img_cnt.shape[1], baseline), (255, 255, 255), 1)
+        cv2.line(img_cnt_copy, (0, int(baseline+2)), (img_cnt.shape[1], int(baseline+2)), (255, 255, 255), 1)
+
+        
+        cv2.imwrite("img_cnt_word.png", img_cnt_copy)
+        display_image("contour", img_cnt_copy)
 
         count = 0
         flag = False
@@ -393,11 +418,11 @@ def contour_seg(image, baseline_org):
         for i in range(len(y_points)):
 
             if not flag:
-                if y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline:
+                if y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline or y_points[i] -2 == baseline:
                     count = 1
                     flag = True
             else:
-                    if not(y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline):
+                    if not(y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline or y_points[i] -2 == baseline):
                         flag = False
                         if count > 2:
                             length_consective.append(count)
@@ -432,7 +457,7 @@ def contour_seg(image, baseline_org):
             for k in range(len(sub_x)):
                 sub_above = img_cnt[int(baseline_local/2):baseline_local -1, sub_x[k]]
                 # sub_above = img_cnt[:baseline_local -2: sub_x[k]]
-                sub_below = img_cnt[baseline_local+1:, sub_x[k]]
+                sub_below = img_cnt[baseline_local+2:, sub_x[k]]
                 # print("sub_above: ", sub_above)
                 # print("sub_below:, ", sub_below)
                 #need to add some threshold to eliminate too close seg points
