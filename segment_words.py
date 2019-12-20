@@ -170,11 +170,11 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 recognized_chars += ' ' + match_feat_to_char(char_map, feat_vectors)
             curr_word_idx += 1
         display_image("word sep", image)
-    
+
     if (train):
         try:
             with open('./config_map.json', 'w') as f:
-                f.write(json.dumps(char_map, ensure_ascii = False))
+                f.write(json.dumps(char_map, ensure_ascii=False))
                 f.close()
                 print(char_map)
                 return wrong_seg_words, curr_word_idx - 1
@@ -200,6 +200,7 @@ def process_image(line_segmets_path, input_path, f):
     lines = segment_lines(processed_image, line_segmets_path, 0)
     curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, True)
     print(f'we got {curr_ww} wrong out of {curr_tw}')
+    return curr_ww, curr_tw
 
 
 if __name__ == '__main__':
@@ -224,5 +225,10 @@ if __name__ == '__main__':
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
     nthreads = 0
+    words_wrong = 0
+    total_words = 0
     for f in files:
-        process_image(line_segmets_path, input_path, f)
+        cww, ctw = process_image(line_segmets_path, input_path, f)
+        words_wrong += cww
+        total_words += ctw
+    print(f'in Total: Got {words_wrong} from {total_words}')
