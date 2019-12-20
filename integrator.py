@@ -23,6 +23,19 @@ def count_feat_vecs(feat_vecs):
     return c
 
 
+composities_map = {
+    'لد': 'x'
+}
+
+
+def augment_with_compsities(word_text):
+    composities = ['لد']
+    for comp in composities:
+        while(word_text.count(comp) != 0):
+            word_text = word_text.replace(comp, composities_map[comp])
+    return word_text
+
+
 def should_have_one_dot(fv):
     return fv[5] == 1
 
@@ -36,11 +49,11 @@ def should_have_no_dots(fv):
 
 
 def should_have_score(fv):
-    return fv[0] == 0
+    return fv[0] != 0
 
 
 def should_have_no_score(fv):
-    return fv[0] != 0
+    return fv[0] == 0
 
 
 validation_map = {
@@ -73,11 +86,13 @@ validation_map = {
     'و': [should_have_no_dots],
     'ى': [],
     'ي': [should_have_dots],
-    'L': [should_have_no_dots]
+    'L': [should_have_no_dots],
+    'x': [should_have_no_dots, should_have_score]
 }
 
 
 def compare_and_assign(feat_vects, word_str, char_map):
+    word_str = augment_with_compsities(word_str)
     if(len(word_str) != count_feat_vecs(feat_vects)):
         return -1
     feat_vects.reverse()
