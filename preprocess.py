@@ -340,7 +340,7 @@ def contour_seg(image, baseline_org):
         baseline = most_frequent(np.asarray(y_points))
         print("now baseline is: ", baseline)
     
-        seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png", .8)
+        seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png", .7)
         print("seen points", seen_points)
 
         seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .85)
@@ -366,7 +366,7 @@ def contour_seg(image, baseline_org):
             img_cnt[:, point:point+ template_width_seen] = 255
 
         for point in seen_mid_points:
-            img_cnt[:, point+5:point+ template_width_seen_mid] = 255
+            img_cnt[:, point+3:point+ template_width_seen_mid-5] = 255
 
         for point in seen_end_points:
             img_cnt[:, point:point+ template_width_seen_end] = 255
@@ -430,7 +430,7 @@ def contour_seg(image, baseline_org):
             canidatate_points = []
             print(type(img_cnt[0,0]))
             for k in range(len(sub_x)):
-                sub_above = img_cnt[:baseline_local -1, sub_x[k]]
+                sub_above = img_cnt[int(baseline_local/2):baseline_local -1, sub_x[k]]
                 # sub_above = img_cnt[:baseline_local -2: sub_x[k]]
                 sub_below = img_cnt[baseline_local+1:, sub_x[k]]
                 # print("sub_above: ", sub_above)
