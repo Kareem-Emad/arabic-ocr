@@ -155,7 +155,8 @@ def segment_words(line_images, path, img_name, input_path, train=False):
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
             # import ipdb; ipdb.set_trace()
-            feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
+            if(len(gt_words) > curr_word_idx):
+                feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
             if (train):
                 if(len(gt_words) > curr_word_idx):
                     aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
