@@ -323,6 +323,7 @@ def contour_seg(image, baseline_org):
         image_blank = np.zeros(edged.shape, np.uint8)
         img = cv2.drawContours(image_blank, [cnt], 0, (255, 255, 255), 1) 
         leftmost = tuple(cnt[cnt[:,:,0].argmin()][0])
+        character_indecies.append(leftmost[0])
 
         print("cnt shape", cnt.shape)
         img_cnt = np.zeros(edged.shape, np.uint8)
@@ -342,7 +343,7 @@ def contour_seg(image, baseline_org):
         seen_points, template_width_seen = template_match(img_cnt, "./patterns/seen_start.png", .8)
         print("seen points", seen_points)
 
-        seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .75)
+        seen_mid_points, template_width_seen_mid = template_match(img_cnt, "./patterns/seen_mid.png", .85)
         print("seen mid points", seen_mid_points)
 
         seen_end_points, template_width_seen_end = template_match(img_cnt, "./patterns/seen_end.png", .8)
@@ -357,11 +358,15 @@ def contour_seg(image, baseline_org):
         sad_points, template_width_sad = template_match(img_cnt, "patterns/sad.png", .75)
         print("sad points", sad_points)
 
+        ba2_points, template_width_ba2 = template_match(img_cnt, "patterns/ba2_end.png", .75)
+        print("sad points", ba2_points)
+
+
         for point in seen_points:
             img_cnt[:, point:point+ template_width_seen] = 255
 
         for point in seen_mid_points:
-            img_cnt[:, point+8:point+ template_width_seen_mid] = 255
+            img_cnt[:, point+5:point+ template_width_seen_mid] = 255
 
         for point in seen_end_points:
             img_cnt[:, point:point+ template_width_seen_end] = 255
@@ -373,6 +378,9 @@ def contour_seg(image, baseline_org):
             img_cnt[:, point:point+ template_width_fa2] = 255
 
         for point in sad_points:
+            img_cnt[:, point:point+ template_width_fa2] = 255
+
+        for point in ba2_points:
             img_cnt[:, point:point+ template_width_fa2] = 255
 
         cv2.imwrite("img_cnt_word.png", img_cnt)
@@ -492,7 +500,6 @@ def contour_seg(image, baseline_org):
             break
 
         character_indecies.extend(segment_points)
-        character_indecies.append(leftmost[0])
 
         print("seg points final", segment_points)
     
