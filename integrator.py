@@ -39,9 +39,12 @@ def compare_and_assign(feat_vects, word_str, char_map):
 
 def load_features_map():
     feat_map = {}
-    with open('config_map.json') as f:
-        feat_map = json.load(f)
-    return feat_map
+    try:
+        with open('config_map.json') as f:
+            feat_map = json.load(f)
+        return feat_map
+    except Exception:
+        return {}
 
 
 def match_feat_to_char(feat_map, feat_vecs):
