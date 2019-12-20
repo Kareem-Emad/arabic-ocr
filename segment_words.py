@@ -4,7 +4,6 @@ import cv2
 import os
 import shutil
 import json
-
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image, get_distance_between_words
 from preprocess import get_baseline_y_coord, get_horizontal_projection
 from preprocess import get_vertical_projection, deskew, contour_seg
@@ -84,11 +83,9 @@ def segment_words(line_images, path, img_name, input_path, train=False):
     # image = cv2.imread(os.path.join(path, files[1]))
     # print(os.path.join(path, files[1]))
     gt_words = get_words_from_text(img_name, input_path)
-    if (train):
-        char_map = {}
-    else:
-        char_map = load_features_map()
-        recognized_chars = ''
+    char_map = load_features_map()
+
+    recognized_chars = ''
     directory_name = "./segmented_words"
 
     if os.path.exists(directory_name):
@@ -109,7 +106,7 @@ def segment_words(line_images, path, img_name, input_path, train=False):
 
         vertical_projection = get_vertical_projection(image)
 
-        print("shape of vertical projections is: ", len(vertical_projection))
+        # print("shape of vertical projections is: ", len(vertical_projection))
 
         x, count = 0, 0
         is_space = False
@@ -138,12 +135,12 @@ def segment_words(line_images, path, img_name, input_path, train=False):
         # word_separation = list(filter(lambda a: a != -1, word_separation))
 
         for i in range(len(word_separation)):
-    
+
             if distances[i] > 2:
                 pass
             else:
                 word_separation[i] = -1
- 
+
         word_separation = list(filter(lambda a: a != -1, word_separation))
         print(word_separation)
 
@@ -157,7 +154,9 @@ def segment_words(line_images, path, img_name, input_path, train=False):
             cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]), (255, 255, 255),1)
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
-            feat_vectors = batch_get_feat_vectors(word, seg_points)
+            # import ipdb; ipdb.set_trace()
+            if(len(gt_words) > curr_word_idx):
+                feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
             if (train):
                 if(len(gt_words) > curr_word_idx):
                     aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
@@ -168,17 +167,41 @@ def segment_words(line_images, path, img_name, input_path, train=False):
                 else:
                     wrong_seg_words += 1
             else:
-                recognized_chars += match_feat_to_char(char_map, feat_vectors)
+                # import ipdb; ipdb.set_trace()
+                recognized_chars += ' ' + match_feat_to_char(char_map, feat_vectors)
             curr_word_idx += 1
-        display_image("word sep",image)
+        display_image("word sep", image)
+
     if (train):
         try:
             with open('./config_map.json', 'w') as f:
-                f.write(json.dumps(char_map))
+                f.write(json.dumps(char_map, ensure_ascii=False))
                 f.close()
+                print(char_map)
+                return wrong_seg_words, curr_word_idx - 1
         except Exception:
             print(char_map)
             return wrong_seg_words, curr_word_idx - 1
+    else:
+        print(recognized_chars)
+        return 0, 0
+
+
+def process_image(line_segmets_path, input_path, f):
+    image = cv2.imread(os.path.join(input_path, f))
+    display_image("source", image)
+    processed_image = convert_to_binary_and_invert(image)
+    processed_image = deskew(processed_image)
+
+    print(processed_image.shape)
+    display_image("after deskew", processed_image)
+    cv2.imwrite("binary.png", processed_image)
+    line_segmets_path = os.path.join(line_segmets_path, f[:-4])
+
+    lines = segment_lines(processed_image, line_segmets_path, 0)
+    curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, True)
+    print(f'we got {curr_ww} wrong out of {curr_tw}')
+    return curr_ww, curr_tw
 
 
 if __name__ == '__main__':
@@ -202,22 +225,11 @@ if __name__ == '__main__':
     line_segmets_path = args["line_segments_path"]
 
     files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f))]
-    wrong_words = 0
+    nthreads = 0
+    words_wrong = 0
     total_words = 0
     for f in files:
-
-        image = cv2.imread(os.path.join(input_path, f))
-        display_image("source", image)
-        processed_image = convert_to_binary_and_invert(image)
-        processed_image = deskew(processed_image)
-
-        print(processed_image.shape)
-        display_image("after deskew", processed_image)
-        cv2.imwrite("binary.png", processed_image)
-        line_segmets_path = os.path.join(line_segmets_path, f[:-4])
-
-        lines = segment_lines(processed_image, line_segmets_path, 1)
-        curr_ww, curr_tw = segment_words(lines, line_segmets_path, f, input_path, True)
-        wrong_words += curr_ww
-        total_words += curr_tw
-    print(f'we got {wrong_words} wrong out of {total_words}')
+        cww, ctw = process_image(line_segmets_path, input_path, f)
+        words_wrong += cww
+        total_words += ctw
+    print(f'in Total: Got {words_wrong} from {total_words}')
