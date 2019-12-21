@@ -74,6 +74,13 @@ def segment_lines(image, directory_name, write_to_file):
     return line_images
 
 
+def convert(o):
+    import numpy
+    if isinstance(o, numpy.int64):
+        return int(o)  
+    raise TypeError
+
+
 def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
     """
     this function keeps the list of word separatation points in word_separation list
@@ -178,9 +185,10 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
         display_image("word sep", image)
 
     if (train):
+        import ipdb; ipdb.set_trace()
         try:
             with open('./config_map.json', 'w') as f:
-                f.write(json.dumps(char_map, ensure_ascii=False))
+                f.write(json.dumps(char_map, ensure_ascii=False, default=convert))
                 f.close()
                 print(char_map)
                 return wrong_seg_words, curr_word_idx - 1, char_map
