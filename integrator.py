@@ -24,10 +24,9 @@ def count_feat_vecs(feat_vecs):
 
 
 composities_map = {
-    'لد': 'x',
     'لا': 'L'
 }
-composities = ['لد']
+composities = []
 
 
 def augment_with_compsities(word_text):
@@ -147,7 +146,7 @@ def compare_and_assign(feat_vects, word_str, char_map):
         for validation in char_validations:
             if(not validation(feat_vects[i])):
                 not_valid = True
-                break
+                return -1
 
         if(not_valid is True):
             continue

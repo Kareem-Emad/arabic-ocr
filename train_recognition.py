@@ -351,6 +351,7 @@ def batch_get_feat_vectors(word, idxes, text_word):
     idxes.append(word.shape[1] - 1)
     feat_vectors = []
     last_idx = 0
+    good_cuts = []
     # curr_char_idx = len(text_word) - 1
     for idx in idxes:
         idx = int(idx)
@@ -360,9 +361,10 @@ def batch_get_feat_vectors(word, idxes, text_word):
             if(fv != []):  # and validate_segment(fv, text_word, curr_char_idx) is True):
                 feat_vectors.append(fv)
                 last_idx = idx
+                good_cuts.append(idx)
                 # curr_char_idx -= 1
         except Exception:
             # print(e)
             pass
             # feat_vectors.append([])
-    return feat_vectors
+    return feat_vectors, good_cuts

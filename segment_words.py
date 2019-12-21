@@ -162,19 +162,24 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
 
             word = original_image[:, int(word_separation[i]):previous_width]
             display_image("word", word)
+            """
             cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]),
                      (255, 255, 255), 1)
+            """
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
-
+            good_cuts = []
             if (len(gt_words) > curr_word_idx and train):
-                feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
+                feat_vectors, good_cuts = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
             else:
                 feat_vectors = batch_get_feat_vectors(word, seg_points, None)
             if (train):
                 if (len(gt_words) > curr_word_idx):
                     aux_map = compare_and_assign(feat_vectors, gt_words[curr_word_idx], char_map)
                     if (aux_map != -1):
+                        cv2.imwrite(f'./train_set/{curr_word_idx}_{img_name}', word)
+                        with open(f'./label_set/{curr_word_idx}_{img_name.replace("png", "txt")}', 'w') as f:
+                            f.write(str(good_cuts))
                         char_map = aux_map
                     else:
                         # print(f'Rejected Word #{curr_word_idx}')
@@ -252,7 +257,7 @@ if __name__ == '__main__':
     total_words = 0
     acc_char_map = load_features_map()
     avg_acc = 0
-    train = False
+    train = True
     for f in files:
         cww, ctw, acc_char_map = process_image(line_segmets_path, input_path, f, acc_char_map, train)
         words_wrong += cww
