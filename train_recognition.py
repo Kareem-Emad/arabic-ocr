@@ -1,6 +1,7 @@
-import numpy as np
+import numpy as np # noqa
 import cv2
-from utils import display_image, convert_to_binary_and_invert
+from utils import display_image # noqa
+from integrator import validation_map, augment_with_compsities
 
 
 def get_largest_connected_component(image):
@@ -157,15 +158,13 @@ def label_interest_points(interest_ponts, w, h, img):
             if (W not in blocked_dirs):
                 label = 'L_CONC'
             else:
-                if (W in blocked_dirs and S in blocked_dirs and E in blocked_dirs
-                        and (N not in blocked_dirs or NE not in blocked_dirs or NW not in blocked_dirs)):
+                if (W in blocked_dirs and S in blocked_dirs and E in blocked_dirs and (N not in blocked_dirs or NE not in blocked_dirs or NW not in blocked_dirs)): # noqa
                     label = 'U_CONC'
                 else:
                     if (E not in blocked_dirs):
                         label = 'R_CONIC'
                     else:
-                        if ((W in blocked_dirs and N in blocked_dirs and E in blocked_dirs and
-                             (S not in blocked_dirs or SE not in blocked_dirs or SW not in blocked_dirs))):
+                        if ((W in blocked_dirs and N in blocked_dirs and E in blocked_dirs and (S not in blocked_dirs or SE not in blocked_dirs or SW not in blocked_dirs))): # noqa
                             label = 'D_CONIC'
 
             if ((pt, label) not in labeled_points):
@@ -330,19 +329,33 @@ def recognize_char(char_img):
     return feature_vector
 
 
+def validate_segment(fv, text_word, current_char_idx):
+    validations = validation_map[text_word[current_char_idx]]
+    is_valid = True
+    for validate in validations:
+        if(not validate(fv)):
+            is_valid = False
+            break
+    return is_valid
+
+
 def batch_get_feat_vectors(word, idxes, text_word):
+    text_word = augment_with_compsities(text_word)
     idxes.append(word.shape[1] - 1)
     feat_vectors = []
     last_idx = 0
+    # curr_char_idx = len(text_word) - 1
     for idx in idxes:
         idx = int(idx)
         last_idx = int(last_idx)
         try:
             fv = recognize_char(word[:, last_idx:idx])
-            if (fv != []):
+            if(fv != []):  # and validate_segment(fv, text_word, curr_char_idx) is True):
                 feat_vectors.append(fv)
-        except Exception as e:
-            print(e)
+                last_idx = idx
+                # curr_char_idx -= 1
+        except Exception:
+            # print(e)
+            pass
             # feat_vectors.append([])
-        last_idx = idx
     return feat_vectors
