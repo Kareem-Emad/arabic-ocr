@@ -250,7 +250,7 @@ if __name__ == '__main__':
     nthreads = 0
     words_wrong = 0
     total_words = 0
-    acc_char_map = {}
+    acc_char_map = load_features_map()
     avg_acc = 0
     train = True
     for f in files:
