@@ -167,7 +167,7 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
 
-            if (len(gt_words) > curr_word_idx):
+            if (len(gt_words) > curr_word_idx and train):
                 feat_vectors = batch_get_feat_vectors(word, seg_points, gt_words[curr_word_idx])
             else:
                 feat_vectors = batch_get_feat_vectors(word, seg_points, None)
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     total_words = 0
     acc_char_map = load_features_map()
     avg_acc = 0
-    train = True
+    train = False
     for f in files:
         cww, ctw, acc_char_map = process_image(line_segmets_path, input_path, f, acc_char_map, train)
         words_wrong += cww

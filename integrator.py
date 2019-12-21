@@ -147,7 +147,7 @@ def compare_and_assign(feat_vects, word_str, char_map):
         if(not_valid is True):
             continue
 
-        score = feat_vects[i][0]
+        score = str(feat_vects[i][0])
         if(score not in char_map):
             char_map[score] = []
 
@@ -167,15 +167,31 @@ def load_features_map():
         return {}
 
 
+def get_distance(fv1, fv2):
+    d = 0
+    for i in range(0, len(fv1)):
+        d += (fv1[i] - fv2[i]) ** 2
+    d = d ** 0.5
+    return d
+
+
 def match_feat_to_char(feat_map, feat_vecs):
     feat_vecs.reverse()
     word_str = ''
     for fv in feat_vecs:
         score = str(fv[0])
+        min_dist = 5265644664664
+        candidate_char = ''
         if(score in feat_map):
             for tup in feat_map[score]:
-                if(fv in tup):
-                    word_str += tup[0]
+                curr_fv = tup[1]
+                dist = get_distance(fv, curr_fv)
+                if(dist < min_dist):
+                    min_dist = dist
+                    candidate_char = tup[0]
+                if(min_dist == 0):
                     break
+
+        word_str += candidate_char
     word_str = replace_composities(word_str)
     return word_str
