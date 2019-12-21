@@ -280,7 +280,7 @@ def template_match(image, path, threshold):
 def contour_seg(image, baseline_org):
 
     edged = image.copy()
-    final = image.copy()
+    # final = image.copy()
     character_indecies = []
 
     contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -320,7 +320,7 @@ def contour_seg(image, baseline_org):
         leftmost = tuple(cnt[cnt[:,:,0].argmin()][0])
         character_indecies.append(leftmost[0])
 
-        print("cnt shape", cnt.shape)
+        # print("cnt shape", cnt.shape)
         img_cnt = np.zeros(edged.shape, np.uint8)
         y_points = []
         x_points = []
@@ -349,7 +349,7 @@ def contour_seg(image, baseline_org):
         kaf_end_points, template_width_kaf_end = template_match(img_cnt, "./patterns/kaf_end.png", .65)
         # print("kaf end points", kaf_end_points)
 
-        fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png", .75)
+        fa2_points, template_width_fa2 = template_match(img_cnt, "patterns/fa2.png", .65)
         # print("fa2 points", fa2_points)
 
         sad_points, template_width_sad = template_match(img_cnt, "./patterns/sad.png", .75)
@@ -364,10 +364,10 @@ def contour_seg(image, baseline_org):
         ya2_end_points, template_width_ya2_end = template_match(img_cnt, "./patterns/ya2_end.png", .75)
         # print("ya2 end points", ya2_end_points)
 
-        ra2_end_points, template_width_ra2_end = template_match(img_cnt, "./patterns/ra2_end.png", .85)
+        # ra2_end_points, template_width_ra2_end = template_match(img_cnt, "./patterns/ra2_end.png", .85)
         # print("ra2 end points", ra2_end_points)
 
-        dal_end_points, template_width_dal_end = template_match(img_cnt, "./patterns/dal_end.png", .7)
+        # dal_end_points, template_width_dal_end = template_match(img_cnt, "./patterns/dal_end.png", .7)
         # print("dal end points", dal_end_points)
 
         for point in seen_points:
@@ -425,7 +425,7 @@ def contour_seg(image, baseline_org):
         segment_points = []
 
         baseline_local = baseline
-        if baseline > baseline_org:
+        if abs(baseline - baseline_org) > 2:
             baseline_local = baseline_org
 
         for i in point_positions:
