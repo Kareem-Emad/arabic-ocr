@@ -24,7 +24,8 @@ def count_feat_vecs(feat_vecs):
 
 
 composities_map = {
-    'لد': 'x'
+    'لد': 'x',
+    'لا': 'L'
 }
 composities = ['لد']
 
@@ -37,7 +38,7 @@ def augment_with_compsities(word_text):
 
 
 def replace_composities(word_text):
-    for comp in composities:
+    for comp in composities + ['لا']:
         while(word_text.count(composities_map[comp]) != 0):
             word_text = word_text.replace(composities_map[comp], comp)
     return word_text
@@ -95,20 +96,24 @@ def should_have_6_ver_trans(fv):
     return fv[7] >= 6
 
 
+def should_have_no_holes(fv):
+    return fv[8] == 0
+
+
 validation_map = {
-    'ا': [should_have_no_dots],
-    'ب': [should_have_one_dot, should_be_dotted_bottom],
-    'ت': [should_have_dots, should_be_dotted_top],
-    'ث': [should_have_dots, should_be_dotted_top],
+    'ا': [should_have_no_dots, should_have_no_holes],
+    'ب': [should_have_one_dot, should_be_dotted_bottom, should_have_no_holes],
+    'ت': [should_have_dots, should_be_dotted_top, should_have_no_holes],
+    'ث': [should_have_dots, should_be_dotted_top, should_have_no_holes],
     'ج': [should_have_one_dot, should_have_4_ver_trans],
     'ح': [should_have_no_dots, should_have_4_ver_trans],
     'خ': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans],
-    'د': [should_have_no_dots],
-    'ذ': [should_have_one_dot, should_be_dotted_top],
-    'ر': [should_have_no_dots],
-    'ز': [should_have_one_dot, should_be_dotted_top],
-    'س': [should_have_no_dots, should_have_score, should_have_high_score, should_have_6_hoz_trans],
-    'ش': [should_have_score, should_have_dots, should_be_dotted_top, should_have_high_score, should_have_6_hoz_trans], # noqa
+    'د': [should_have_no_dots, should_have_no_holes],
+    'ذ': [should_have_one_dot, should_be_dotted_top, should_have_no_holes],
+    'ر': [should_have_no_dots, should_have_no_holes],
+    'ز': [should_have_one_dot, should_be_dotted_top, should_have_no_holes],
+    'س': [should_have_no_dots, should_have_score, should_have_high_score, should_have_6_hoz_trans, should_have_no_holes],
+    'ش': [should_have_score, should_have_dots, should_be_dotted_top, should_have_high_score, should_have_6_hoz_trans, should_have_no_holes], # noqa
     'ص': [should_have_no_dots, should_have_score, should_have_4_ver_trans],
     'ض': [should_have_one_dot, should_have_score, should_be_dotted_top, should_have_4_ver_trans],
     'ط': [should_have_no_dots, should_have_score, should_have_4_ver_trans],
@@ -117,16 +122,16 @@ validation_map = {
     'غ': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans],
     'ف': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans, should_have_4_hoz_trans],
     'ق': [should_have_dots, should_be_dotted_top, should_have_4_ver_trans, should_have_4_hoz_trans],
-    'ك': [should_have_score],
+    'ك': [should_have_score, should_have_no_holes],
     'ل': [should_have_no_dots],
     'م': [should_have_no_dots, should_have_4_ver_trans, should_have_4_hoz_trans],
-    'ن': [should_have_one_dot, should_be_dotted_top],
+    'ن': [should_have_one_dot, should_be_dotted_top, should_have_no_holes],
     'ه': [should_have_no_dots, should_have_score],
     'و': [should_have_no_dots],
     'ى': [],
     'ي': [should_have_dots, should_be_dotted_bottom],
     'L': [should_have_no_dots],
-    'x': [should_have_no_dots, should_have_score]
+    'x': [should_have_no_dots, should_have_score, should_have_no_holes]
 }
 
 

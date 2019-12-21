@@ -285,10 +285,12 @@ def recognize_char(char_img):
 
     labeled_pts = label_interest_points(interest_pts, char_img.shape[1], char_img.shape[0], char_img)
     score = 0
+    has_hole = 0
     for lpt in labeled_pts:
         label = lpt[1]
         if (label == 'HOLE'):
             score += 1
+            has_hole = 1
         if (label == 'L_CONC'):
             score += 4
         if (label == 'R_CONIC'):
@@ -330,7 +332,7 @@ def recognize_char(char_img):
         hmax = 0
     if(vmax < 4):
         vmax = 0
-    feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc, hmax, vmax]
+    feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc, hmax, vmax, has_hole]
     return feature_vector
 
 
