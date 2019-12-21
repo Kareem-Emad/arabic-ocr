@@ -252,7 +252,7 @@ if __name__ == '__main__':
     total_words = 0
     acc_char_map = {}
     avg_acc = 0
-    train = False
+    train = True
     for f in files:
         cww, ctw, acc_char_map = process_image(line_segmets_path, input_path, f, acc_char_map, train)
         words_wrong += cww
@@ -261,4 +261,4 @@ if __name__ == '__main__':
             avg_acc += words_wrong / total_words
     avg_acc = avg_acc / len(files)
     if(train):
-        print(f'in Total: Got {words_wrong} from {total_words} | accuracy: {avg_acc}')
+        print(f'in Total: Got {words_wrong} from {total_words} | accuracy: {1 - avg_acc}')
