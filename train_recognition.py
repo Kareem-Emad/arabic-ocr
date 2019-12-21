@@ -309,9 +309,9 @@ def recognize_char(char_img):
         return []
 
     char_form = -1
-    if (form_ratio <= 0.781):
+    if (form_ratio < 0.8):
         char_form = 1
-    if (form_ratio >= 0.8 and form_ratio <= 1.1):
+    if (form_ratio >= 0.8 and form_ratio < 1.2):
         char_form = 2
     if (form_ratio > 1.2):
         char_form = 3
@@ -324,8 +324,13 @@ def recognize_char(char_img):
         return []
 
     pospunc, expunc, numpunc = recognize_dots(img_dotted)
-
-    feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc]
+    hmax = np.max(horz_transitions)
+    vmax = np.max(ver_transitions)
+    if(hmax < 4):
+        hmax = 0
+    if(vmax < 4):
+        vmax = 0
+    feature_vector = [score, char_form, corvar, expunc, pospunc, numpunc, hmax, vmax]
     return feature_vector
 
 
@@ -340,7 +345,7 @@ def validate_segment(fv, text_word, current_char_idx):
 
 
 def batch_get_feat_vectors(word, idxes, text_word):
-    text_word = augment_with_compsities(text_word)
+    # text_word = augment_with_compsities(text_word)
     idxes.append(word.shape[1] - 1)
     feat_vectors = []
     last_idx = 0

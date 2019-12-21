@@ -124,11 +124,13 @@ def compare_and_assign(feat_vects, word_str, char_map):
         if(not_valid is True):
             continue
 
-        if(not char_map.get(curr_char)):
-            char_map[word_str[i]] = []
+        score = feat_vects[i][0]
+        if(score not in char_map):
+            char_map[score] = []
 
-        if(feat_vects[i] not in char_map[word_str[i]]):
-            char_map[word_str[i]].append(feat_vects[i])
+        fc_tup = (curr_char, feat_vects[i])
+        if(fc_tup not in char_map[score]):
+            char_map[score].append(fc_tup)
     return char_map
 
 
@@ -146,9 +148,10 @@ def match_feat_to_char(feat_map, feat_vecs):
     feat_vecs.reverse()
     word_str = ''
     for fv in feat_vecs:
-        for char, feats in feat_map.items():
-            if(fv in feats):
-                word_str += char
-                break
-
+        score = str(fv[0])
+        if(score in feat_map):
+            for tup in feat_map[score]:
+                if(fv in tup):
+                    word_str += tup[0]
+                    break
     return word_str
