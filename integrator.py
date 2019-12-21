@@ -26,13 +26,20 @@ def count_feat_vecs(feat_vecs):
 composities_map = {
     'لد': 'x'
 }
+composities = ['لد']
 
 
 def augment_with_compsities(word_text):
-    composities = ['لد']
     for comp in composities:
         while(word_text.count(comp) != 0):
             word_text = word_text.replace(comp, composities_map[comp])
+    return word_text
+
+
+def replace_composities(word_text):
+    for comp in composities:
+        while(word_text.count(composities_map[comp]) != 0):
+            word_text = word_text.replace(composities_map[comp], comp)
     return word_text
 
 
@@ -68,31 +75,51 @@ def should_be_dotted_middle(fv):
     return fv[4] == 2
 
 
+def should_have_high_score(fv):
+    return fv[0] > 128
+
+
+def should_have_4_hoz_trans(fv):
+    return fv[6] >= 4
+
+
+def should_have_6_hoz_trans(fv):
+    return fv[6] >= 6
+
+
+def should_have_4_ver_trans(fv):
+    return fv[7] >= 4
+
+
+def should_have_6_ver_trans(fv):
+    return fv[7] >= 6
+
+
 validation_map = {
-    'ا': [should_have_no_dots, should_have_no_score],
+    'ا': [should_have_no_dots],
     'ب': [should_have_one_dot, should_be_dotted_bottom],
     'ت': [should_have_dots, should_be_dotted_top],
     'ث': [should_have_dots, should_be_dotted_top],
-    'ج': [should_have_one_dot, should_be_dotted_middle],
-    'ح': [should_have_no_dots],
-    'خ': [should_have_one_dot, should_be_dotted_top],
+    'ج': [should_have_one_dot, should_have_4_ver_trans],
+    'ح': [should_have_no_dots, should_have_4_ver_trans],
+    'خ': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans],
     'د': [should_have_no_dots],
     'ذ': [should_have_one_dot, should_be_dotted_top],
     'ر': [should_have_no_dots],
     'ز': [should_have_one_dot, should_be_dotted_top],
-    'س': [should_have_no_dots, should_have_score],
-    'ش': [should_have_score, should_have_dots, should_be_dotted_top],
-    'ص': [should_have_no_dots, should_have_score],
-    'ض': [should_have_one_dot, should_have_score, should_be_dotted_top],
-    'ط': [should_have_no_dots, should_have_score],
-    'ظ': [should_have_one_dot, should_have_score, should_be_dotted_top],
-    'ع': [should_have_no_dots],
-    'غ': [should_have_one_dot, should_be_dotted_top],
-    'ف': [should_have_one_dot, should_be_dotted_top],
-    'ق': [should_have_dots, should_be_dotted_top],
-    'ك': [should_have_dots, should_be_dotted_middle],
+    'س': [should_have_no_dots, should_have_score, should_have_high_score, should_have_6_hoz_trans],
+    'ش': [should_have_score, should_have_dots, should_be_dotted_top, should_have_high_score, should_have_6_hoz_trans], # noqa
+    'ص': [should_have_no_dots, should_have_score, should_have_4_ver_trans],
+    'ض': [should_have_one_dot, should_have_score, should_be_dotted_top, should_have_4_ver_trans],
+    'ط': [should_have_no_dots, should_have_score, should_have_4_ver_trans],
+    'ظ': [should_have_one_dot, should_have_score, should_be_dotted_top, should_have_4_ver_trans],
+    'ع': [should_have_no_dots, should_have_4_ver_trans],
+    'غ': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans],
+    'ف': [should_have_one_dot, should_be_dotted_top, should_have_4_ver_trans, should_have_4_hoz_trans],
+    'ق': [should_have_dots, should_be_dotted_top, should_have_4_ver_trans, should_have_4_hoz_trans],
+    'ك': [should_have_score],
     'ل': [should_have_no_dots],
-    'م': [should_have_no_dots],
+    'م': [should_have_no_dots, should_have_4_ver_trans, should_have_4_hoz_trans],
     'ن': [should_have_one_dot, should_be_dotted_top],
     'ه': [should_have_no_dots, should_have_score],
     'و': [should_have_no_dots],
@@ -120,11 +147,13 @@ def compare_and_assign(feat_vects, word_str, char_map):
         if(not_valid is True):
             continue
 
-        if(not char_map.get(curr_char)):
-            char_map[word_str[i]] = []
+        score = str(feat_vects[i][0])
+        if(score not in char_map):
+            char_map[score] = []
 
-        if(feat_vects[i] not in char_map[word_str[i]]):
-            char_map[word_str[i]].append(feat_vects[i])
+        fc_tup = (curr_char, feat_vects[i])
+        if(fc_tup not in char_map[score]):
+            char_map[score].append(fc_tup)
     return char_map
 
 
@@ -138,13 +167,31 @@ def load_features_map():
         return {}
 
 
+def get_distance(fv1, fv2):
+    d = 0
+    for i in range(0, len(fv1)):
+        d += (fv1[i] - fv2[i]) ** 2
+    d = d ** 0.5
+    return d
+
+
 def match_feat_to_char(feat_map, feat_vecs):
     feat_vecs.reverse()
     word_str = ''
     for fv in feat_vecs:
-        for char, feats in feat_map.items():
-            if(fv in feats):
-                word_str += char
-                break
+        score = str(fv[0])
+        min_dist = 5265644664664
+        candidate_char = ''
+        if(score in feat_map):
+            for tup in feat_map[score]:
+                curr_fv = tup[1]
+                dist = get_distance(fv, curr_fv)
+                if(dist < min_dist):
+                    min_dist = dist
+                    candidate_char = tup[0]
+                if(min_dist == 0):
+                    break
 
+        word_str += candidate_char
+    word_str = replace_composities(word_str)
     return word_str
