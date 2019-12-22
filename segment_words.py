@@ -5,7 +5,7 @@ import os
 import shutil
 import json
 import time
-from utils import convert_to_binary, convert_to_binary_and_invert, display_image
+from utils import convert_to_binary, convert_to_binary_and_invert, display_image, get_distance_between_words
 from preprocess import get_baseline_y_coord, get_horizontal_projection
 from preprocess import get_vertical_projection, deskew, contour_seg
 from train_recognition import batch_get_feat_vectors
@@ -102,7 +102,6 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
     recognized_chars = ''
     """"
     directory_name = "./segmented_words"
-
     if os.path.exists(directory_name):
         shutil.rmtree(directory_name)
     os.makedirs(directory_name)char_map
@@ -148,10 +147,11 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
         previous_width = 0
         word_separation = xcoords.copy()
         # word_separation = list(filter(lambda a: a != -1, word_separation))
-
+        distance = get_distance_between_words(distances)
+        # print("distance is ",distance)
         for i in range(len(word_separation)):
 
-            if distances[i] > 1:
+            if distances[i] > distance:
                 pass
             else:
                 word_separation[i] = -1

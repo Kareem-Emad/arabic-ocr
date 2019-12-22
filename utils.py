@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 from more_itertools import unique_everseen
 
 from os import environ
@@ -39,12 +40,24 @@ def convert_to_binary_and_invert(image):
 
 
 def get_distance_between_words(distances):
+    print(distances)
+    distances = distances[1:-1]
     distances_soreted = sorted(distances, key=distances.count, reverse=True)
     distances_soreted = list(unique_everseen(distances_soreted))
-    print(distances_soreted)
-    # distance = max(distances_soreted[:3])
-    distance = sum(distances_soreted[:3]) // 3
-    return distance
+    # print("distances_soreted", distances_soreted)
+    # if len(distances_soreted) >= 3:
+    #     distance = min(distances_soreted[:3])
+    # else:
+    #     distance = min(distances_soreted)
+
+    # if distance == 1:
+    #     distance += 1
+    # distance = sum(distances_soreted[:3]) // 
+    # if distances_soreted[1] < 7:
+    #     return distances_soreted[0]+ math.floor(distances_soreted[1]/4) 
+    distances_soreted = distances_soreted[:3]
+    # print("after", distances_soreted)
+    return min(distances_soreted)+ math.floor(max(distances_soreted)/4)
 
 
 def thin_image(img):
