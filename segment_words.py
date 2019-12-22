@@ -4,6 +4,7 @@ import cv2
 import os
 import shutil
 import json
+import time
 from utils import convert_to_binary, convert_to_binary_and_invert, display_image
 from preprocess import get_baseline_y_coord, get_horizontal_projection
 from preprocess import get_vertical_projection, deskew, contour_seg
@@ -191,39 +192,42 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
             with open('./config_map.json', 'w') as f:
                 f.write(json.dumps(char_map, ensure_ascii=False, default=convert))
                 f.close()
-                print(char_map)
+                # print(char_map)
                 return wrong_seg_words, curr_word_idx - 1, char_map
         except Exception:
-            print(char_map)
+            # print(char_map)
             return wrong_seg_words, curr_word_idx - 1, char_map
     else:
         try:
-            with open(f'./output/{img_name.replace("png", "txt")}', 'w') as f:
+            with open(f'./output/text/{img_name.replace("png", "txt")}', 'w') as f:
                 f.write(recognized_chars)
         except Exception:
             return 0, 0, {}
 
-        print(f'recognized_text: {recognized_chars}')
+        # print(f'recognized_text: {recognized_chars}')
         return 0, 0, {}
 
 
 def process_image(line_segmets_path, input_path, f, acc_char_map, train):
     image = cv2.imread(os.path.join(input_path, f))
-    display_image("source", image)
+    # display_image("source", image)
+    start_time = time.time()
+
     processed_image = convert_to_binary_and_invert(image)
     processed_image = deskew(processed_image)
 
-    print(processed_image.shape)
-    display_image("after deskew", processed_image)
+    # display_image("after deskew", processed_image)
     # cv2.imwrite("binary.png", processed_image)
     line_segmets_path = os.path.join(line_segmets_path, f[:-4])
 
     lines = segment_lines(processed_image, line_segmets_path, 0)
     curr_ww, curr_tw, acc_char_map = segment_words(lines, line_segmets_path, f, input_path, train,
                                                    acc_char_map)
+
+    end_time = time.time()
     if(train):
         print(f'we got {curr_ww} wrong out of {curr_tw}')
-    return curr_ww, curr_tw, acc_char_map
+    return curr_ww, curr_tw, acc_char_map, end_time - start_time
 
 
 if __name__ == '__main__':
@@ -253,12 +257,21 @@ if __name__ == '__main__':
     acc_char_map = load_features_map()
     avg_acc = 0
     train = False
-    for f in files:
-        cww, ctw, acc_char_map = process_image(line_segmets_path, input_path, f, acc_char_map, train)
+    durations = []
+    for f in files[:10]:
+        cww, ctw, acc_char_map, duration = process_image(line_segmets_path, input_path, f, acc_char_map, train) # noqa
+        durations.append(duration)
         words_wrong += cww
         total_words += ctw
         if(total_words):
             avg_acc += words_wrong / total_words
+
+    with open('output/running_time.txt', 'w') as f:
+        for dur in durations:
+            f.write(str(dur))
+            f.write('\n')
+        f.close()
+
     avg_acc = avg_acc / len(files)
     if(train):
         print(f'in Total: Got {words_wrong} from {total_words} | accuracy: {1 - avg_acc}')
