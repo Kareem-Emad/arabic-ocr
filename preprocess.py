@@ -120,9 +120,9 @@ def find_max_transition(image_original):
             max_transitions = current_transitions
             max_transition_line = i
 
-    cv2.line(image, (0, max_transition_line), (w, max_transition_line), (255, 255, 255), 1)
-    cv2.line(image, (0, baseline), (w, baseline), (255, 255, 255), 1)
-    display_image("max transitions", image)
+    # cv2.line(image, (0, max_transition_line), (w, max_transition_line), (255, 255, 255), 1)
+    # cv2.line(image, (0, baseline), (w, baseline), (255, 255, 255), 1)
+    # display_image("max transitions", image)
 
     return max_transition_line
 
@@ -146,9 +146,9 @@ def get_start_end_points_sr(image, max_transition_index):
             separation_regions.append(sr)
             sr = [-1, -1]
 
-    for sr in separation_regions:
-        cv2.line(image_co, (sr[0], 0), (sr[0], h), (255, 255, 255), 1)  # for debugging
-        cv2.line(image_co, (sr[1], 0), (sr[1], h), (255, 255, 255), 1)  # for debugging
+    # for sr in separation_regions:
+        # cv2.line(image_co, (sr[0], 0), (sr[0], h), (255, 255, 255), 1)  # for debugging
+        # cv2.line(image_co, (sr[1], 0), (sr[1], h), (255, 255, 255), 1)  # for debugging
 
     display_image("after ", image_co)
     print(separation_regions)
@@ -235,8 +235,8 @@ def segment_character(image):
     print("final seg points", segmenataion_points)
 
     (h, w) = image.shape
-    for i in segmenataion_points:
-        cv2.line(image, (i, 0), (i, h), (255, 255, 255), 1)
+    # for i in segmenataion_points:
+    #   cv2.line(image, (i, 0), (i, h), (255, 255, 255), 1)
 
     # cv2.line(image, (segmenataion_points[-1], 0), (segmenataion_points[-1], h), (255, 255, 255), 1)
     display_image("char seg", image)

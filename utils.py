@@ -1,26 +1,25 @@
 import cv2
 import numpy as np
-from  more_itertools import unique_everseen
+from more_itertools import unique_everseen
 
 from os import environ
-
 
 
 def most_frequent(arr):
 
     (values, counts) = np.unique(arr, return_counts=True)
-    most_freq = values[np.argmax(counts)] 
+    most_freq = values[np.argmax(counts)]
 
     if most_freq == 0:
-        arr = arr[ arr != most_freq]
+        arr = arr[arr != most_freq]
         (values, counts) = np.unique(arr, return_counts=True)
-        most_freq = values[np.argmax(counts)] 
-
+        most_freq = values[np.argmax(counts)]
 
     return most_freq
 
+
 def display_image(label, image):
-    if(environ.get('DEBUG_MODE')):
+    if (environ.get('DEBUG_MODE')):
         cv2.imshow(label, image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -40,18 +39,16 @@ def convert_to_binary_and_invert(image):
 
 
 def get_distance_between_words(distances):
-    distances_soreted = sorted(distances, key=distances.count,reverse=True)
+    distances_soreted = sorted(distances, key=distances.count, reverse=True)
     distances_soreted = list(unique_everseen(distances_soreted))
     print(distances_soreted)
     # distance = max(distances_soreted[:3])
     distance = sum(distances_soreted[:3]) // 3
     return distance
 
-    
 
 def thin_image(img):
     # img = convert_to_binary(img)
-    
     # ret, img = cv2.threshold(img, 127, 255, 0)
     element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
     skel = np.zeros(img.shape, np.uint8)
@@ -69,8 +66,11 @@ def thin_image(img):
 
     return skel
 
-#TODO: test this template with letters like R
+
 def match_template(image):
+    """
+    TODO: test this template with letters like R
+    """
     height = 8
     width = 8
     template = np.zeros((height, width))
@@ -79,6 +79,3 @@ def match_template(image):
             if (i == 2 and j == 3) or (i == 2 and j == 4):
                 continue
         template[(i, j)] = 255
-
-        
-            

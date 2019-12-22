@@ -24,10 +24,9 @@ def count_feat_vecs(feat_vecs):
 
 
 composities_map = {
-    'لد': 'x',
     'لا': 'L'
 }
-composities = ['لد']
+composities = []
 
 
 def augment_with_compsities(word_text):
@@ -112,7 +111,7 @@ validation_map = {
     'ذ': [should_have_one_dot, should_be_dotted_top, should_have_no_holes],
     'ر': [should_have_no_dots, should_have_no_holes],
     'ز': [should_have_one_dot, should_be_dotted_top, should_have_no_holes],
-    'س': [should_have_no_dots, should_have_score, should_have_high_score, should_have_6_hoz_trans, should_have_no_holes],
+    'س': [should_have_no_dots, should_have_score, should_have_high_score, should_have_6_hoz_trans, should_have_no_holes], # noqa
     'ش': [should_have_score, should_have_dots, should_be_dotted_top, should_have_high_score, should_have_6_hoz_trans, should_have_no_holes], # noqa
     'ص': [should_have_no_dots, should_have_score, should_have_4_ver_trans],
     'ض': [should_have_one_dot, should_have_score, should_be_dotted_top, should_have_4_ver_trans],

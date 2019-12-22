@@ -52,7 +52,7 @@ def segment_lines(image, directory_name, write_to_file):
         if i == 0:
             continue
 
-        cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2)
+        # cv2.line(image, (0, int(ycoords[i])), (w, int(ycoords[i])), (255, 255, 255), 2)
         image_cropped = original_image[previous_height:int(ycoords[i]), :]
         line_images.append(image_cropped)
 
@@ -94,7 +94,10 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
     if(train):
         char_map = acc_char_map
     else:
-        char_map = load_features_map()
+        if(not acc_char_map or acc_char_map == {}):
+            char_map = load_features_map()
+        else:
+            char_map = acc_char_map
 
     recognized_chars = ''
     """"
@@ -102,7 +105,7 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
 
     if os.path.exists(directory_name):
         shutil.rmtree(directory_name)
-    os.makedirs(directory_name)
+    os.makedirs(directory_name)char_map
     """
     curr_word_idx = 0
     wrong_seg_words = 0
@@ -162,9 +165,8 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
             i = len(word_separation) - i - 1
 
             word = original_image[:, int(word_separation[i]):previous_width]
-            display_image("word", word)
-            cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]),
-                     (255, 255, 255), 1)
+            # display_image("word", word)
+            # cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]),(255, 255, 255), 1) # noqa
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)
 
@@ -193,19 +195,20 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
                 f.write(json.dumps(char_map, ensure_ascii=False, default=convert))
                 f.close()
                 # print(char_map)
-                return wrong_seg_words, curr_word_idx - 1, char_map
+                return wrong_seg_words, curr_word_idx - 1, char_map, 0
         except Exception:
             # print(char_map)
-            return wrong_seg_words, curr_word_idx - 1, char_map
+            return wrong_seg_words, curr_word_idx - 1, char_map, 0
     else:
+        end_time = time.time()
         try:
             with open(f'./output/text/{img_name.replace("png", "txt")}', 'w') as f:
                 f.write(recognized_chars)
         except Exception:
-            return 0, 0, {}
+            return 0, 0, {}, end_time
 
         # print(f'recognized_text: {recognized_chars}')
-        return 0, 0, {}
+        return 0, 0, {}, end_time
 
 
 def process_image(line_segmets_path, input_path, f, acc_char_map, train):
@@ -221,10 +224,8 @@ def process_image(line_segmets_path, input_path, f, acc_char_map, train):
     line_segmets_path = os.path.join(line_segmets_path, f[:-4])
 
     lines = segment_lines(processed_image, line_segmets_path, 0)
-    curr_ww, curr_tw, acc_char_map = segment_words(lines, line_segmets_path, f, input_path, train,
-                                                   acc_char_map)
+    curr_ww, curr_tw, acc_char_map, end_time = segment_words(lines, line_segmets_path, f, input_path, train, acc_char_map) # noqa
 
-    end_time = time.time()
     if(train):
         print(f'we got {curr_ww} wrong out of {curr_tw}')
     return curr_ww, curr_tw, acc_char_map, end_time - start_time
@@ -258,7 +259,7 @@ if __name__ == '__main__':
     avg_acc = 0
     train = False
     durations = []
-    for f in files[:10]:
+    for f in files:
         cww, ctw, acc_char_map, duration = process_image(line_segmets_path, input_path, f, acc_char_map, train) # noqa
         durations.append(duration)
         words_wrong += cww
