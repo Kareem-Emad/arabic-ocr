@@ -69,14 +69,11 @@ if __name__ == '__main__':
     input_path = args["input_path"]
     line_segmets_path = args["line_segments_path"]
 
-    image = cv2.imread("segmented_lines/capr153/segment_1/segment_2.png", cv2.COLOR_BGR2GRAY)
+    image = cv2.imread("./contour/segment_5.png", cv2.COLOR_BGR2GRAY)
     display_image("source", image)
     
 
     processed_image = image
-    cv2.imwrite("binary.png", processed_image)
-
-    img_line = processed_image.copy()
     edged = processed_image
     vertical_projection = get_vertical_projection(image)
 
@@ -85,7 +82,7 @@ if __name__ == '__main__':
     xcoords = []
     distances = []
 
-    for i in range(img_line.shape[1]):
+    for i in range(edged.shape[1]):
         if not is_space:
             if vertical_projection[i] == 0:
                 is_space = True
@@ -106,9 +103,7 @@ if __name__ == '__main__':
     contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
-    # for cnt in contours:
-    #     print("cnt area: ", cv2.contourArea(cnt))
-    # exit()
+
     for cnt in contours:
         if(cv2.contourArea(cnt) < 1):
             print("too small", cv2.contourArea(cnt))
@@ -184,18 +179,24 @@ if __name__ == '__main__':
 
         for point in sad_points:
             img_cnt[:, point:point+ template_width_fa2] = 255
-        # img_cnt = cv2.morphologyEx(img_cnt, cv2.MORPH_CLOSE, np.ones((2,2), np.uint8))
+
         cv2.imwrite("img_cnt.png", img_cnt)
 
         hp = get_horizontal_projection(img_cnt)
         baseline_org = get_baseline_y_coord(get_horizontal_projection(processed_image))
         
-        # baseline = get_baseline_y_coord(hp)
+    
+        img_line = img_cnt.copy()
         baseline = most_frequent(np.asarray(y_points))
         print("now baseline is: ", baseline)
+        print("now baseline_org is:", baseline_org)
         h , w = processed_image.shape
         cv2.line(img_line, (0, baseline), (w, baseline), (255, 255, 255), 1)
+        cv2.line(img_line, (0, baseline_org), (w, baseline_org), (255, 255, 255), 1)
+
+    
         cv2.imwrite("baseline.png", img_line)
+        display_image("baseline_org", img_line)
 
         count = 0
         flag = False
@@ -204,11 +205,11 @@ if __name__ == '__main__':
         for i in range(len(y_points)):
 
             if not flag:
-                if y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline:
+                if y_points[i] -2 == baseline or y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline:
                     count = 1
                     flag = True
             else:
-                    if not(y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline):
+                    if not(y_points[i] -2 == baseline or y_points[i] == baseline or y_points[i] + 1 == baseline or y_points[i] -1 == baseline):
                         flag = False
                         if count > 2:
                             length_consective.append(count)
@@ -234,8 +235,9 @@ if __name__ == '__main__':
             canidatate_points = []
             print(type(img_cnt[0,0]))
             for k in range(len(sub_x)):
-                sub_above = img_cnt[:baseline, sub_x[k]]
-                sub_below = img_cnt[baseline + 1:, sub_x[k]]
+                # sub_above = img_cnt[:baseline, sub_x[k]]
+                sub_above = img_cnt[int(baseline/2):baseline, sub_x[k]]
+                sub_below = img_cnt[baseline + 2:, sub_x[k]]
                 # print("sub_above: ", sub_above)
                 # print("sub_below:, ", sub_below)
                 #need to add some threshold to eliminate too close seg points
