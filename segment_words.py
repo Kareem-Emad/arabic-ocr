@@ -157,7 +157,7 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
                 word_separation[i] = -1
 
         word_separation = list(filter(lambda a: a != -1, word_separation))
-        print(word_separation)
+        # print(word_separation)
 
         previous_width = image.shape[1]
         seg_points = []
@@ -165,7 +165,7 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
             i = len(word_separation) - i - 1
 
             word = original_image[:, int(word_separation[i]):previous_width]
-            # display_image("word", word)
+            display_image("word", word)
             # cv2.line(image, (int(word_separation[i]), 0), (int(word_separation[i]), image.shape[0]),(255, 255, 255), 1) # noqa
             previous_width = int(word_separation[i])
             seg_points = contour_seg(word, baseline_y_coord)

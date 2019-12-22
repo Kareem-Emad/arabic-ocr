@@ -40,7 +40,7 @@ def convert_to_binary_and_invert(image):
 
 
 def get_distance_between_words(distances):
-    print(distances)
+    # print(distances)
     distances = distances[1:-1]
     distances_soreted = sorted(distances, key=distances.count, reverse=True)
     distances_soreted = list(unique_everseen(distances_soreted))
