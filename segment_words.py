@@ -147,7 +147,7 @@ def segment_words(line_images, path, img_name, input_path, train, acc_char_map):
 
         for i in range(len(word_separation)):
 
-            if distances[i] > 2:
+            if distances[i] > 1:
                 pass
             else:
                 word_separation[i] = -1
