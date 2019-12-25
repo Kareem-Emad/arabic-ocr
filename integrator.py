@@ -130,7 +130,6 @@ validation_map = {
     'ى': [],
     'ي': [should_have_dots, should_be_dotted_bottom],
     'L': [should_have_no_dots],
-    'x': [should_have_no_dots, should_have_score, should_have_no_holes]
 }
 
 
